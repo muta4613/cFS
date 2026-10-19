@@ -183,6 +183,21 @@ CFE_Status_t ATT_APP_Init(void)
     if (status == CFE_SUCCESS)
     {
         /*
+        ** Subscribe to the scheduler wakeup that drives sensor sampling
+        */
+        status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(ATT_APP_WAKEUP_MID), ATT_APP_Data.CommandPipe);
+        if (status != CFE_SUCCESS)
+        {
+            CFE_EVS_SendEvent(ATT_APP_SUB_WAKEUP_ERR_EID,
+                              CFE_EVS_EventType_ERROR,
+                              "ATT App: Error Subscribing to Wakeup, RC = 0x%08lX",
+                              (unsigned long)status);
+        }
+    }
+
+    if (status == CFE_SUCCESS)
+    {
+        /*
         ** Register Example Table(s)
         */
         status = CFE_TBL_Register(&ATT_APP_Data.TblHandles[0],

@@ -54,6 +54,11 @@ typedef struct
     uint8 CommandErrorCounter;
 
     /*
+    ** Count of scheduler wakeups (proves the 50 Hz sampling tick arrives)
+    */
+    uint32 WakeupCounter;
+
+    /*
     ** Housekeeping telemetry packet...
     */
     ATT_APP_HkTlm_t HkTlm;

@@ -133,6 +133,7 @@ void ATT_APP_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
 {
     static CFE_SB_MsgId_t CMD_MID     = CFE_SB_MSGID_RESERVED;
     static CFE_SB_MsgId_t SEND_HK_MID = CFE_SB_MSGID_RESERVED;
+    static CFE_SB_MsgId_t WAKEUP_MID  = CFE_SB_MSGID_RESERVED;
 
     CFE_SB_MsgId_t MsgId = CFE_SB_INVALID_MSG_ID;
 
@@ -141,12 +142,18 @@ void ATT_APP_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
     {
         CMD_MID     = CFE_SB_ValueToMsgId(ATT_APP_CMD_MID);
         SEND_HK_MID = CFE_SB_ValueToMsgId(ATT_APP_SEND_HK_MID);
+        WAKEUP_MID  = CFE_SB_ValueToMsgId(ATT_APP_WAKEUP_MID);
     }
 
     CFE_MSG_GetMsgId(&SBBufPtr->Msg, &MsgId);
 
     /* Process all SB messages */
-    if (CFE_SB_MsgId_Equal(MsgId, SEND_HK_MID))
+    if (CFE_SB_MsgId_Equal(MsgId, WAKEUP_MID))
+    {
+        /* Scheduler wakeup: time to take a sample */
+        ATT_APP_WakeupCmd((const ATT_APP_WakeupCmd_t *)SBBufPtr);
+    }
+    else if (CFE_SB_MsgId_Equal(MsgId, SEND_HK_MID))
     {
         /* Housekeeping request */
         ATT_APP_SendHkCmd((const ATT_APP_SendHkCmd_t *)SBBufPtr);

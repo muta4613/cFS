@@ -41,8 +41,10 @@ typedef struct ATT_APP_DisplayParam_Payload
 
 typedef struct ATT_APP_HkTlm_Payload
 {
-    uint8 CommandCounter;
-    uint8 CommandErrorCounter;
+    uint8  CommandCounter;
+    uint8  CommandErrorCounter;
+    uint8  Spare[2];      /**< Explicit padding so WakeupCounter is 4-byte aligned */
+    uint32 WakeupCounter; /**< Number of scheduler wakeups received */
 } ATT_APP_HkTlm_Payload_t;
 
 #endif

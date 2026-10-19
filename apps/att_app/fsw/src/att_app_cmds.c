@@ -53,6 +53,7 @@ CFE_Status_t ATT_APP_SendHkCmd(const ATT_APP_SendHkCmd_t *Msg)
     */
     ATT_APP_Data.HkTlm.Payload.CommandErrorCounter = ATT_APP_Data.CommandErrorCounter;
     ATT_APP_Data.HkTlm.Payload.CommandCounter      = ATT_APP_Data.CommandCounter;
+    ATT_APP_Data.HkTlm.Payload.WakeupCounter       = ATT_APP_Data.WakeupCounter;
 
     /*
     ** Send housekeeping telemetry packet...
@@ -67,6 +68,21 @@ CFE_Status_t ATT_APP_SendHkCmd(const ATT_APP_SendHkCmd_t *Msg)
     {
         CFE_TBL_Manage(ATT_APP_Data.TblHandles[i]);
     }
+
+    return CFE_SUCCESS;
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
+/*                                                                            */
+/*  Purpose:                                                                  */
+/*         Called on every scheduler wakeup (50 Hz). This is where sensor     */
+/*         sampling, filtering, and fault checks will run. For now it only    */
+/*         counts wakeups so the rate can be verified in telemetry.           */
+/*                                                                            */
+/* * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * *  * *  * * * * */
+CFE_Status_t ATT_APP_WakeupCmd(const ATT_APP_WakeupCmd_t *Msg)
+{
+    ATT_APP_Data.WakeupCounter++;
 
     return CFE_SUCCESS;
 }
@@ -99,6 +115,7 @@ CFE_Status_t ATT_APP_ResetCountersCmd(const ATT_APP_ResetCountersCmd_t *Msg)
 {
     ATT_APP_Data.CommandCounter      = 0;
     ATT_APP_Data.CommandErrorCounter = 0;
+    ATT_APP_Data.WakeupCounter       = 0;
 
     CFE_EVS_SendEvent(ATT_APP_RESET_INF_EID, CFE_EVS_EventType_INFORMATION, "SAMPLE: RESET command");
 

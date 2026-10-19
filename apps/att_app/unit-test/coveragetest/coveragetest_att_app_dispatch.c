@@ -81,6 +81,12 @@ void Test_ATT_APP_TaskPipe(void)
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetMsgId), &TestMsgId, sizeof(TestMsgId), false);
     ATT_APP_TaskPipe(&TestMsg.SBBuf);
 
+    /* scheduler wakeup must be routed to the wakeup handler */
+    TestMsgId = CFE_SB_ValueToMsgId(ATT_APP_WAKEUP_MID);
+    UT_SetDataBuffer(UT_KEY(CFE_MSG_GetMsgId), &TestMsgId, sizeof(TestMsgId), false);
+    ATT_APP_TaskPipe(&TestMsg.SBBuf);
+    UtAssert_STUB_COUNT(ATT_APP_WakeupCmd, 1);
+
     /* invalid message id */
     TestMsgId = CFE_SB_INVALID_MSG_ID;
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetMsgId), &TestMsgId, sizeof(TestMsgId), false);

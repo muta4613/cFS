@@ -76,6 +76,14 @@ typedef struct
     CFE_MSG_CommandHeader_t CommandHeader; /**< \brief Command header */
 } ATT_APP_SendHkCmd_t;
 
+/*
+** Wakeup message sent by the scheduler at the sampling rate (50 Hz)
+*/
+typedef struct
+{
+    CFE_MSG_CommandHeader_t CommandHeader; /**< \brief Command header */
+} ATT_APP_WakeupCmd_t;
+
 typedef struct
 {
     CFE_MSG_TelemetryHeader_t  TelemetryHeader; /**< \brief Telemetry header */

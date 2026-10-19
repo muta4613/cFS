@@ -31,6 +31,7 @@
 #include "att_app_msg.h"
 
 CFE_Status_t ATT_APP_SendHkCmd(const ATT_APP_SendHkCmd_t *Msg);
+CFE_Status_t ATT_APP_WakeupCmd(const ATT_APP_WakeupCmd_t *Msg);
 CFE_Status_t ATT_APP_NoopCmd(const ATT_APP_NoopCmd_t *Msg);
 CFE_Status_t ATT_APP_ResetCountersCmd(const ATT_APP_ResetCountersCmd_t *Msg);
 CFE_Status_t ATT_APP_ProcessCmd(const ATT_APP_ProcessCmd_t *Msg);

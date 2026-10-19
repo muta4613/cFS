@@ -102,6 +102,24 @@ void Test_ATT_APP_NoopCmd(void)
     UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
 }
 
+void Test_ATT_APP_WakeupCmd(void)
+{
+    /*
+     * Test Case For:
+     * CFE_Status_t ATT_APP_WakeupCmd( const ATT_APP_WakeupCmd_t *Msg )
+     *
+     * Each wakeup must increment the counter by exactly one
+     */
+    ATT_APP_WakeupCmd_t TestMsg;
+
+    memset(&TestMsg, 0, sizeof(TestMsg));
+    ATT_APP_Data.WakeupCounter = 0;
+
+    UtAssert_INT32_EQ(ATT_APP_WakeupCmd(&TestMsg), CFE_SUCCESS);
+    UtAssert_INT32_EQ(ATT_APP_WakeupCmd(&TestMsg), CFE_SUCCESS);
+    UtAssert_UINT32_EQ(ATT_APP_Data.WakeupCounter, 2);
+}
+
 void Test_ATT_APP_ResetCountersCmd(void)
 {
     /*
@@ -115,7 +133,10 @@ void Test_ATT_APP_ResetCountersCmd(void)
 
     UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_RESET_INF_EID, "SAMPLE: RESET command");
 
+    ATT_APP_Data.WakeupCounter = 7;
+
     UtAssert_INT32_EQ(ATT_APP_ResetCountersCmd(&TestMsg), CFE_SUCCESS);
+    UtAssert_UINT32_EQ(ATT_APP_Data.WakeupCounter, 0);
 
     /*
      * Confirm that the event was generated
@@ -213,6 +234,7 @@ void Test_ATT_APP_DisplayParamCmd(void)
 void UtTest_Setup(void)
 {
     ADD_TEST(ATT_APP_ReportHousekeeping);
+    ADD_TEST(ATT_APP_WakeupCmd);
     ADD_TEST(ATT_APP_NoopCmd);
     ADD_TEST(ATT_APP_ResetCountersCmd);
     ADD_TEST(ATT_APP_ProcessCmd);
