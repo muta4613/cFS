@@ -27,6 +27,12 @@ add_cfe_app_dependency(att_app sample_lib)
 # Add table
 add_cfe_tables(att_app fsw/tables/att_app_tbl.c)
 
+# Install the recorded GNSS log next to the app so it can be opened
+# at runtime through the OSAL virtual path /cf/gnss_sample.nmea
+foreach(TGT ${APP_DYNAMIC_TARGET_LIST} ${APP_STATIC_TARGET_LIST})
+  install(FILES data/gnss_sample.nmea DESTINATION ${TGT}/${INSTALL_SUBDIR})
+endforeach()
+
 # If UT is enabled, then add the tests from the subdirectory
 # Note that this is an app, and therefore does not provide
 # stub functions, as other entities would not typically make

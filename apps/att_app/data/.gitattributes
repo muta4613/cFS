@@ -1,0 +1,2 @@
+# NMEA sentences end in CRLF by specification; never let git rewrite them
+*.nmea -text
