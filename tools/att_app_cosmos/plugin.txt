@@ -1,0 +1,24 @@
+# ATT_APP - GNSS signal-health monitor for NASA cFS
+# Licensed under the Apache License, Version 2.0
+#
+# OpenC3 COSMOS plugin for ATT_APP. It talks to cFS the way the lab apps
+# expect: commands go to CI_LAB on UDP 1234, and TO_LAB sends telemetry back on
+# UDP 2234. Both values can be changed when the plugin is installed.
+
+# Where COSMOS sends commands: the host running core-cpu1. 172.17.0.1 is the
+# Docker bridge gateway, i.e. the WSL/Linux host when Docker Engine runs there.
+VARIABLE cfs_host 172.17.0.1
+VARIABLE cfs_cmd_port 1234
+VARIABLE cfs_tlm_port 2234
+
+# What TO_LAB_ENABLE_OUTPUT tells cFS to send telemetry to. With the COSMOS
+# operator publishing UDP 2234 on the host, 127.0.0.1 works.
+VARIABLE tlm_dest_ip 127.0.0.1
+
+TARGET ATT_APP ATT_APP
+
+INTERFACE ATT_APP_INT udp_interface.rb <%= cfs_host %> <%= cfs_cmd_port %> <%= cfs_tlm_port %> nil nil 128 nil nil
+  MAP_TARGET ATT_APP
+  # Order matters: the length has to be written before the checksum covers it.
+  PROTOCOL WRITE AttAppCcsdsLength
+  PROTOCOL WRITE AttAppCcsdsChecksum

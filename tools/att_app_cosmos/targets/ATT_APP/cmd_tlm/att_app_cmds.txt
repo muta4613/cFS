@@ -1,0 +1,64 @@
+# ATT_APP - GNSS signal-health monitor for NASA cFS
+# Licensed under the Apache License, Version 2.0
+#
+# ATT_APP commands, plus the two from other apps that operating ATT_APP needs.
+# Byte layout must match apps/att_app/config/default_att_app_msgstruct.h;
+# tools/att_app_cosmos/test/check_layout.py checks it against the compiled structs.
+
+COMMAND ATT_APP NOOP LITTLE_ENDIAN "Increment the command counter and send an INFO event"
+  APPEND_ID_PARAMETER CCSDS_STREAMID 16 UINT MIN_UINT16 MAX_UINT16 0x1887 "CCSDS packet identification (message ID)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_SEQUENCE 16 UINT MIN_UINT16 MAX_UINT16 0xC000 "CCSDS sequence control (unsegmented)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_LENGTH 16 UINT MIN_UINT16 MAX_UINT16 1 "CCSDS data length, total bytes - 7 (set by the write protocol)" BIG_ENDIAN
+  APPEND_ID_PARAMETER CCSDS_FC 8 UINT MIN_UINT8 MAX_UINT8 0 "Command function code"
+  APPEND_PARAMETER CCSDS_CHECKSUM 8 UINT MIN_UINT8 MAX_UINT8 0 "Command checksum (set by the write protocol)"
+
+COMMAND ATT_APP RESET_COUNTERS LITTLE_ENDIAN "Zero the HK command, error, epoch and parse-error counters"
+  APPEND_ID_PARAMETER CCSDS_STREAMID 16 UINT MIN_UINT16 MAX_UINT16 0x1887 "CCSDS packet identification (message ID)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_SEQUENCE 16 UINT MIN_UINT16 MAX_UINT16 0xC000 "CCSDS sequence control (unsegmented)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_LENGTH 16 UINT MIN_UINT16 MAX_UINT16 1 "CCSDS data length, total bytes - 7 (set by the write protocol)" BIG_ENDIAN
+  APPEND_ID_PARAMETER CCSDS_FC 8 UINT MIN_UINT8 MAX_UINT8 1 "Command function code"
+  APPEND_PARAMETER CCSDS_CHECKSUM 8 UINT MIN_UINT8 MAX_UINT8 0 "Command checksum (set by the write protocol)"
+
+COMMAND ATT_APP SET_CNO_THRESHOLD LITTLE_ENDIAN "Set the single-satellite low C/N0 threshold"
+  APPEND_ID_PARAMETER CCSDS_STREAMID 16 UINT MIN_UINT16 MAX_UINT16 0x1887 "CCSDS packet identification (message ID)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_SEQUENCE 16 UINT MIN_UINT16 MAX_UINT16 0xC000 "CCSDS sequence control (unsegmented)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_LENGTH 16 UINT MIN_UINT16 MAX_UINT16 5 "CCSDS data length, total bytes - 7 (set by the write protocol)" BIG_ENDIAN
+  APPEND_ID_PARAMETER CCSDS_FC 8 UINT MIN_UINT8 MAX_UINT8 2 "Command function code"
+  APPEND_PARAMETER CCSDS_CHECKSUM 8 UINT MIN_UINT8 MAX_UINT8 0 "Command checksum (set by the write protocol)"
+  APPEND_PARAMETER CNO_THRESHOLD 8 UINT 10 55 30 "New threshold, dB-Hz (the app accepts 10-55)"
+    UNITS dB-Hz dBHz
+  APPEND_PARAMETER PADDING 24 UINT 0 0 0 "Not used, sent as 0"
+
+COMMAND ATT_APP RESTART_LOG LITTLE_ENDIAN "Reopen the GNSS input from the start and clear the health history"
+  APPEND_ID_PARAMETER CCSDS_STREAMID 16 UINT MIN_UINT16 MAX_UINT16 0x1887 "CCSDS packet identification (message ID)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_SEQUENCE 16 UINT MIN_UINT16 MAX_UINT16 0xC000 "CCSDS sequence control (unsegmented)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_LENGTH 16 UINT MIN_UINT16 MAX_UINT16 1 "CCSDS data length, total bytes - 7 (set by the write protocol)" BIG_ENDIAN
+  APPEND_ID_PARAMETER CCSDS_FC 8 UINT MIN_UINT8 MAX_UINT8 3 "Command function code"
+  APPEND_PARAMETER CCSDS_CHECKSUM 8 UINT MIN_UINT8 MAX_UINT8 0 "Command checksum (set by the write protocol)"
+
+COMMAND ATT_APP SEND_HK LITTLE_ENDIAN "Request a housekeeping packet (SCH_LAB normally sends this at 1 Hz)"
+  APPEND_ID_PARAMETER CCSDS_STREAMID 16 UINT MIN_UINT16 MAX_UINT16 0x1888 "CCSDS packet identification (message ID)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_SEQUENCE 16 UINT MIN_UINT16 MAX_UINT16 0xC000 "CCSDS sequence control (unsegmented)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_LENGTH 16 UINT MIN_UINT16 MAX_UINT16 1 "CCSDS data length, total bytes - 7 (set by the write protocol)" BIG_ENDIAN
+  APPEND_ID_PARAMETER CCSDS_FC 8 UINT MIN_UINT8 MAX_UINT8 0 "Command function code"
+  APPEND_PARAMETER CCSDS_CHECKSUM 8 UINT MIN_UINT8 MAX_UINT8 0 "Command checksum (set by the write protocol)"
+
+COMMAND ATT_APP TO_LAB_ENABLE_OUTPUT LITTLE_ENDIAN "Tell TO_LAB to start sending telemetry to DEST_IP"
+  APPEND_ID_PARAMETER CCSDS_STREAMID 16 UINT MIN_UINT16 MAX_UINT16 0x1880 "CCSDS packet identification (message ID)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_SEQUENCE 16 UINT MIN_UINT16 MAX_UINT16 0xC000 "CCSDS sequence control (unsegmented)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_PARAMETER CCSDS_LENGTH 16 UINT MIN_UINT16 MAX_UINT16 17 "CCSDS data length, total bytes - 7 (set by the write protocol)" BIG_ENDIAN
+  APPEND_ID_PARAMETER CCSDS_FC 8 UINT MIN_UINT8 MAX_UINT8 6 "Command function code"
+  APPEND_PARAMETER CCSDS_CHECKSUM 8 UINT MIN_UINT8 MAX_UINT8 0 "Command checksum (set by the write protocol)"
+  APPEND_PARAMETER DEST_IP 128 STRING "<%= tlm_dest_ip %>" "IP address TO_LAB sends telemetry to (UDP port 2234)"

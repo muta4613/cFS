@@ -1,0 +1,14 @@
+# ATT_APP - GNSS signal-health monitor for NASA cFS
+# Licensed under the Apache License, Version 2.0
+
+LANGUAGE ruby
+REQUIRE att_app_ccsds_length.rb
+REQUIRE att_app_ccsds_checksum.rb
+
+# The CCSDS fields are header plumbing; hide them from command sender menus.
+IGNORE_PARAMETER CCSDS_STREAMID
+IGNORE_PARAMETER CCSDS_SEQUENCE
+IGNORE_PARAMETER CCSDS_LENGTH
+IGNORE_PARAMETER CCSDS_FC
+IGNORE_PARAMETER CCSDS_CHECKSUM
+IGNORE_PARAMETER PADDING

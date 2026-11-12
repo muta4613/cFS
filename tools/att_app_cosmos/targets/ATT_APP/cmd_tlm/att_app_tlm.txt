@@ -1,0 +1,135 @@
+# ATT_APP - GNSS signal-health monitor for NASA cFS
+# Licensed under the Apache License, Version 2.0
+#
+# ATT_APP telemetry. Byte layout must match
+# apps/att_app/config/default_att_app_msgdefs.h; check_layout.py verifies it.
+# The CCSDS header is big-endian; the payload is in the flight processor's
+# byte order, little-endian for a native x86/ARM build.
+
+TELEMETRY ATT_APP HK LITTLE_ENDIAN "ATT_APP housekeeping, 1 Hz"
+  APPEND_ID_ITEM CCSDS_STREAMID 16 UINT 0x0889 "CCSDS packet identification (message ID)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_ITEM CCSDS_SEQUENCE 16 UINT "CCSDS sequence control" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_ITEM CCSDS_LENGTH 16 UINT "CCSDS data length, total bytes - 7" BIG_ENDIAN
+  APPEND_ITEM SECONDS 32 UINT "Time stamp, seconds" BIG_ENDIAN
+  APPEND_ITEM SUBSECS 16 UINT "Time stamp, subseconds (1/65536 s)" BIG_ENDIAN
+  APPEND_ITEM SPARE_FOR_64_ALIGN 32 UINT "Header padding so the payload is 8-byte aligned"
+  APPEND_ITEM COMMAND_COUNTER 8 UINT "Commands accepted"
+  APPEND_ITEM COMMAND_ERROR_COUNTER 8 UINT "Commands rejected (bad length, unknown code, out-of-range value)"
+  APPEND_ITEM CNO_THRESHOLD 8 UINT "Current single-satellite low C/N0 threshold"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM INPUT_STATE 8 UINT "GNSS input"
+    STATE CLOSED 0 YELLOW
+    STATE OPEN 1 GREEN
+  APPEND_ITEM WAKEUP_COUNTER 32 UINT "50 Hz scheduler wakeups received"
+  APPEND_ITEM EPOCH_COUNTER 32 UINT "GNSS epochs processed"
+  APPEND_ITEM PARSE_ERROR_COUNTER 32 UINT "NMEA sentences rejected by the parser"
+
+TELEMETRY ATT_APP NAV LITTLE_ENDIAN "ATT_APP navigation and GNSS signal health, 1 Hz"
+  APPEND_ID_ITEM CCSDS_STREAMID 16 UINT 0x0893 "CCSDS packet identification (message ID)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_ITEM CCSDS_SEQUENCE 16 UINT "CCSDS sequence control" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_ITEM CCSDS_LENGTH 16 UINT "CCSDS data length, total bytes - 7" BIG_ENDIAN
+  APPEND_ITEM SECONDS 32 UINT "Time stamp, seconds" BIG_ENDIAN
+  APPEND_ITEM SUBSECS 16 UINT "Time stamp, subseconds (1/65536 s)" BIG_ENDIAN
+  APPEND_ITEM SPARE_FOR_64_ALIGN 32 UINT "Header padding so the payload is 8-byte aligned"
+  APPEND_ITEM LATITUDE 64 FLOAT "Latitude, north positive (0 without a fix)"
+    UNITS degrees deg
+    FORMAT_STRING "%.6f"
+  APPEND_ITEM LONGITUDE 64 FLOAT "Longitude, east positive (0 without a fix)"
+    UNITS degrees deg
+    FORMAT_STRING "%.6f"
+  APPEND_ITEM ALTITUDE 32 FLOAT "Altitude above mean sea level (0 without a fix)"
+    UNITS meters m
+    FORMAT_STRING "%.1f"
+  APPEND_ITEM MEAN_CNO 32 FLOAT "Mean C/N0 of tracked satellites"
+    UNITS dB-Hz dBHz
+    FORMAT_STRING "%.1f"
+  APPEND_ITEM EPOCH_COUNTER 32 UINT "Epochs processed, including this one"
+  APPEND_ITEM PARSE_ERROR_COUNTER 32 UINT "NMEA sentences rejected by the parser"
+  APPEND_ITEM UTC_HOUR 8 UINT "UTC time of the fix, hours"
+  APPEND_ITEM UTC_MINUTE 8 UINT "UTC time of the fix, minutes"
+  APPEND_ITEM UTC_SECOND 8 UINT "UTC time of the fix, seconds"
+  APPEND_ITEM UTC_CENTISECOND 8 UINT "UTC time of the fix, hundredths"
+  APPEND_ITEM FIX_QUALITY 8 UINT "GGA fix quality"
+    STATE NO_FIX 0 RED
+    STATE GPS 1 GREEN
+    STATE DGPS 2 GREEN
+    STATE PPS 3 GREEN
+    STATE RTK 4 GREEN
+    STATE FLOAT_RTK 5 GREEN
+    STATE DEAD_RECKONING 6 YELLOW
+  APPEND_ITEM SATS_USED 8 UINT "Satellites used in the solution"
+  APPEND_ITEM SATS_IN_VIEW 8 UINT "Satellites in view"
+  APPEND_ITEM HEALTH_FLAGS 8 UINT "Health bits: 0x01 NO_FIX, 0x02 LOW_CNO_SAT, 0x04 BROADBAND_DROP"
+    FORMAT_STRING "0x%02X"
+  APPEND_ITEM SAT01_PRN 8 UINT "Satellite slot 1: PRN (0 = unused slot)"
+  APPEND_ITEM SAT01_CNO 8 UINT "Satellite slot 1: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM SAT02_PRN 8 UINT "Satellite slot 2: PRN (0 = unused slot)"
+  APPEND_ITEM SAT02_CNO 8 UINT "Satellite slot 2: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM SAT03_PRN 8 UINT "Satellite slot 3: PRN (0 = unused slot)"
+  APPEND_ITEM SAT03_CNO 8 UINT "Satellite slot 3: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM SAT04_PRN 8 UINT "Satellite slot 4: PRN (0 = unused slot)"
+  APPEND_ITEM SAT04_CNO 8 UINT "Satellite slot 4: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM SAT05_PRN 8 UINT "Satellite slot 5: PRN (0 = unused slot)"
+  APPEND_ITEM SAT05_CNO 8 UINT "Satellite slot 5: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM SAT06_PRN 8 UINT "Satellite slot 6: PRN (0 = unused slot)"
+  APPEND_ITEM SAT06_CNO 8 UINT "Satellite slot 6: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM SAT07_PRN 8 UINT "Satellite slot 7: PRN (0 = unused slot)"
+  APPEND_ITEM SAT07_CNO 8 UINT "Satellite slot 7: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM SAT08_PRN 8 UINT "Satellite slot 8: PRN (0 = unused slot)"
+  APPEND_ITEM SAT08_CNO 8 UINT "Satellite slot 8: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM SAT09_PRN 8 UINT "Satellite slot 9: PRN (0 = unused slot)"
+  APPEND_ITEM SAT09_CNO 8 UINT "Satellite slot 9: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM SAT10_PRN 8 UINT "Satellite slot 10: PRN (0 = unused slot)"
+  APPEND_ITEM SAT10_CNO 8 UINT "Satellite slot 10: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM SAT11_PRN 8 UINT "Satellite slot 11: PRN (0 = unused slot)"
+  APPEND_ITEM SAT11_CNO 8 UINT "Satellite slot 11: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  APPEND_ITEM SAT12_PRN 8 UINT "Satellite slot 12: PRN (0 = unused slot)"
+  APPEND_ITEM SAT12_CNO 8 UINT "Satellite slot 12: C/N0 (0 = in view, not tracked)"
+    UNITS dB-Hz dBHz
+  # The three health bits as separate items, overlaid on HEALTH_FLAGS (byte 55).
+  # Bit offsets count from the most significant bit of the byte, so bit 0x01 is 447.
+  ITEM BROADBAND_DROP 445 1 UINT "Possible interference: C/N0 dropped on most satellites at once" BIG_ENDIAN
+    STATE CLEAR 0 GREEN
+    STATE SET 1 RED
+  ITEM LOW_CNO_SAT 446 1 UINT "At least one tracked satellite below CNO_THRESHOLD" BIG_ENDIAN
+    STATE CLEAR 0 GREEN
+    STATE SET 1 YELLOW
+  ITEM NO_FIX 447 1 UINT "Receiver reports no position fix" BIG_ENDIAN
+    STATE CLEAR 0 GREEN
+    STATE SET 1 RED
+
+TELEMETRY ATT_APP EVENT LITTLE_ENDIAN "cFE long event message (all apps, ATT_APP events included)"
+  APPEND_ID_ITEM CCSDS_STREAMID 16 UINT 0x0808 "CCSDS packet identification (message ID)" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_ITEM CCSDS_SEQUENCE 16 UINT "CCSDS sequence control" BIG_ENDIAN
+    FORMAT_STRING "0x%04X"
+  APPEND_ITEM CCSDS_LENGTH 16 UINT "CCSDS data length, total bytes - 7" BIG_ENDIAN
+  APPEND_ITEM SECONDS 32 UINT "Time stamp, seconds" BIG_ENDIAN
+  APPEND_ITEM SUBSECS 16 UINT "Time stamp, subseconds (1/65536 s)" BIG_ENDIAN
+  APPEND_ITEM SPARE_FOR_64_ALIGN 32 UINT "Header padding so the payload is 8-byte aligned"
+  APPEND_ITEM APP_NAME 160 STRING "Application that sent the event"
+  APPEND_ITEM EVENT_ID 16 UINT "Event ID within that application"
+  APPEND_ITEM EVENT_TYPE 16 UINT "Severity"
+    STATE DEBUG 1
+    STATE INFO 2 GREEN
+    STATE ERROR 3 RED
+    STATE CRITICAL 4 RED
+  APPEND_ITEM SPACECRAFT_ID 32 UINT "Spacecraft ID"
+  APPEND_ITEM PROCESSOR_ID 32 UINT "Processor ID"
+  APPEND_ITEM MESSAGE 976 STRING "Event text"
+  APPEND_ITEM PADDING 16 UINT "Structure padding"
