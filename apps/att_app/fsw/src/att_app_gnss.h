@@ -58,9 +58,12 @@ typedef struct
  * an initialization failure: the app keeps running and answers commands,
  * and RESTART_LOG tries the open again.
  *
+ * \param[in] InputMode ATT_APP_GNSS_INPUT_MODE_FILE or ATT_APP_GNSS_INPUT_MODE_DEVICE;
+ *                      the app passes #ATT_APP_PLATFORM_GNSS_INPUT_MODE
+ *
  * \return Always #CFE_SUCCESS
  */
-CFE_Status_t ATT_APP_GNSS_Init(void);
+CFE_Status_t ATT_APP_GNSS_Init(uint8 InputMode);
 
 /**
  * \brief Close the input if it is open, forget partial data and open it again

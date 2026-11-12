@@ -25,21 +25,20 @@
 #ifndef ATT_APP_EVENTS_H
 #define ATT_APP_EVENTS_H
 
-#define ATT_APP_RESERVED_EID      0
-#define ATT_APP_INIT_INF_EID      1
-#define ATT_APP_CC_ERR_EID        2
-#define ATT_APP_NOOP_INF_EID      3
-#define ATT_APP_RESET_INF_EID     4
-#define ATT_APP_MID_ERR_EID       5
-#define ATT_APP_CMD_LEN_ERR_EID   6
-#define ATT_APP_PIPE_ERR_EID      7
-#define ATT_APP_VALUE_INF_EID     8
-#define ATT_APP_CR_PIPE_ERR_EID   9
-#define ATT_APP_SUB_HK_ERR_EID    10
-#define ATT_APP_SUB_CMD_ERR_EID   11
-#define ATT_APP_TABLE_REG_ERR_EID 12
+#define ATT_APP_RESERVED_EID       0
+#define ATT_APP_INIT_INF_EID       1
+#define ATT_APP_CC_ERR_EID         2
+#define ATT_APP_NOOP_INF_EID       3
+#define ATT_APP_RESET_INF_EID      4
+#define ATT_APP_MID_ERR_EID        5
+#define ATT_APP_CMD_LEN_ERR_EID    6
+#define ATT_APP_PIPE_ERR_EID       7
+#define ATT_APP_VALUE_INF_EID      8
+#define ATT_APP_CR_PIPE_ERR_EID    9
+#define ATT_APP_SUB_HK_ERR_EID     10
+#define ATT_APP_SUB_CMD_ERR_EID    11
+#define ATT_APP_TABLE_REG_ERR_EID  12
 #define ATT_APP_SUB_WAKEUP_ERR_EID 13
-
 
 /* GNSS input */
 #define ATT_APP_GNSS_OPEN_INF_EID   14 /**< \brief GNSS input opened */

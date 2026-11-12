@@ -45,7 +45,7 @@ ATT_APP_Data_t ATT_APP_Data;
 ** are sent as events so they cannot crowd everything else out of the log.
 */
 static CFE_EVS_BinFilter_t ATT_APP_EventFilters[] = {
-    {ATT_APP_GNSS_PARSE_ERR_EID, CFE_EVS_FIRST_8_STOP},
+    { ATT_APP_GNSS_PARSE_ERR_EID, CFE_EVS_FIRST_8_STOP },
 };
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  * *  * * * * **/
@@ -151,9 +151,7 @@ CFE_Status_t ATT_APP_Init(void)
         /*
          ** Create Software Bus message pipe.
          */
-        status = CFE_SB_CreatePipe(&ATT_APP_Data.CommandPipe,
-                                   ATT_APP_PLATFORM_PIPE_DEPTH,
-                                   ATT_APP_PLATFORM_PIPE_NAME);
+        status = CFE_SB_CreatePipe(&ATT_APP_Data.CommandPipe, ATT_APP_PLATFORM_PIPE_DEPTH, ATT_APP_PLATFORM_PIPE_NAME);
         if (status != CFE_SUCCESS)
         {
             CFE_EVS_SendEvent(ATT_APP_CR_PIPE_ERR_EID,
@@ -214,7 +212,7 @@ CFE_Status_t ATT_APP_Init(void)
         ** Open the GNSS input and prepare the NAV packet. A missing
         ** input is reported by event and does not stop the app.
         */
-        status = ATT_APP_GNSS_Init();
+        status = ATT_APP_GNSS_Init(ATT_APP_PLATFORM_GNSS_INPUT_MODE);
     }
 
     if (status == CFE_SUCCESS)

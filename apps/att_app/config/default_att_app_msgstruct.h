@@ -62,7 +62,7 @@ typedef struct
 
 typedef struct
 {
-    CFE_MSG_CommandHeader_t           CommandHeader; /**< \brief Command header */
+    CFE_MSG_CommandHeader_t        CommandHeader; /**< \brief Command header */
     ATT_APP_DisplayParam_Payload_t Payload;
 } ATT_APP_DisplayParamCmd_t;
 
@@ -86,8 +86,8 @@ typedef struct
 
 typedef struct
 {
-    CFE_MSG_TelemetryHeader_t  TelemetryHeader; /**< \brief Telemetry header */
-    ATT_APP_HkTlm_Payload_t Payload;         /**< \brief Telemetry payload */
+    CFE_MSG_TelemetryHeader_t TelemetryHeader; /**< \brief Telemetry header */
+    ATT_APP_HkTlm_Payload_t   Payload;         /**< \brief Telemetry payload */
 } ATT_APP_HkTlm_t;
 
 typedef struct

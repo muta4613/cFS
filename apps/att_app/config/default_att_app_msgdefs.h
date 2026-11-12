@@ -30,8 +30,8 @@
 
 typedef struct ATT_APP_DisplayParam_Payload
 {
-    uint32 ValU32;                                    /**< 32 bit unsigned integer value */
-    int16  ValI16;                                    /**< 16 bit signed integer value */
+    uint32 ValU32;                                 /**< 32 bit unsigned integer value */
+    int16  ValI16;                                 /**< 16 bit signed integer value */
     char   ValStr[ATT_APP_MISSION_STRING_VAL_LEN]; /**< An example string */
 } ATT_APP_DisplayParam_Payload_t;
 
@@ -41,9 +41,10 @@ typedef struct ATT_APP_DisplayParam_Payload
  * \name Bits of the HealthFlags field in the NAV telemetry packet
  * \{
  */
-#define ATT_APP_HEALTH_FLAG_NO_FIX         0x01 /**< \brief Receiver reports no position fix */
-#define ATT_APP_HEALTH_FLAG_LOW_CNO_SAT    0x02 /**< \brief At least one tracked satellite is below the C/N0 threshold */
-#define ATT_APP_HEALTH_FLAG_BROADBAND_DROP 0x04 /**< \brief C/N0 fell on most satellites at once (possible interference) */
+#define ATT_APP_HEALTH_FLAG_NO_FIX      0x01 /**< \brief Receiver reports no position fix */
+#define ATT_APP_HEALTH_FLAG_LOW_CNO_SAT 0x02 /**< \brief At least one tracked satellite is below the C/N0 threshold */
+#define ATT_APP_HEALTH_FLAG_BROADBAND_DROP \
+    0x04 /**< \brief C/N0 fell on most satellites at once (possible interference) */
 /** \} */
 
 /**
@@ -103,7 +104,8 @@ typedef struct ATT_APP_NavTlm_Payload
     uint8  SatsUsed;    /**< \brief Satellites used in the position solution */
     uint8  SatsInView;  /**< \brief Satellites in view as reported by the receiver */
     uint8  HealthFlags; /**< \brief ATT_APP_HEALTH_FLAG_* bits */
-    ATT_APP_SatCno_t Sats[ATT_APP_MISSION_MAX_SATS]; /**< \brief First SatsInView entries are valid, up to the array size */
+    ATT_APP_SatCno_t
+        Sats[ATT_APP_MISSION_MAX_SATS]; /**< \brief First SatsInView entries are valid, up to the array size */
 } ATT_APP_NavTlm_Payload_t;
 
 #endif

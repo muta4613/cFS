@@ -63,21 +63,41 @@ void Test_ATT_APP_ReportHousekeeping(void)
     /* Set up to capture timestamp message address */
     UT_SetDataBuffer(UT_KEY(CFE_SB_TimeStampMsg), &MsgTimestamp, sizeof(MsgTimestamp), false);
 
+    /* Values the packet must pick up from the application data */
+    ATT_APP_Data.CommandCounter         = 3;
+    ATT_APP_Data.CommandErrorCounter    = 4;
+    ATT_APP_Data.WakeupCounter          = 500;
+    ATT_APP_Data.Gnss.EpochCounter      = 10;
+    ATT_APP_Data.Gnss.ParseErrorCounter = 2;
+    ATT_APP_Data.Gnss.IsOpen            = true;
+
     /* Call unit under test, NULL pointer confirms command access is through APIs */
     ATT_APP_SendHkCmd(NULL);
 
+    UtAssert_UINT32_EQ(ATT_APP_Data.HkTlm.Payload.CommandCounter, 3);
+    UtAssert_UINT32_EQ(ATT_APP_Data.HkTlm.Payload.CommandErrorCounter, 4);
+    UtAssert_UINT32_EQ(ATT_APP_Data.HkTlm.Payload.WakeupCounter, 500);
+    UtAssert_UINT32_EQ(ATT_APP_Data.HkTlm.Payload.EpochCounter, 10);
+    UtAssert_UINT32_EQ(ATT_APP_Data.HkTlm.Payload.ParseErrorCounter, 2);
+    UtAssert_UINT32_EQ(ATT_APP_Data.HkTlm.Payload.InputState, ATT_APP_INPUT_STATE_OPEN);
+
+    /* A closed input is reported as such */
+    ATT_APP_Data.Gnss.IsOpen = false;
+    ATT_APP_SendHkCmd(NULL);
+    UtAssert_UINT32_EQ(ATT_APP_Data.HkTlm.Payload.InputState, ATT_APP_INPUT_STATE_CLOSED);
+
     /* Confirm message sent*/
-    UtAssert_STUB_COUNT(CFE_SB_TransmitMsg, 1);
+    UtAssert_STUB_COUNT(CFE_SB_TransmitMsg, 2);
     UtAssert_ADDRESS_EQ(MsgSend, &ATT_APP_Data.HkTlm);
 
     /* Confirm timestamp msg address */
-    UtAssert_STUB_COUNT(CFE_SB_TimeStampMsg, 1);
+    UtAssert_STUB_COUNT(CFE_SB_TimeStampMsg, 2);
     UtAssert_ADDRESS_EQ(MsgTimestamp, &ATT_APP_Data.HkTlm);
 
     /*
      * Confirm that the CFE_TBL_Manage() call was done
      */
-    UtAssert_STUB_COUNT(CFE_TBL_Manage, 1);
+    UtAssert_STUB_COUNT(CFE_TBL_Manage, 2);
 }
 
 void Test_ATT_APP_NoopCmd(void)
@@ -87,7 +107,7 @@ void Test_ATT_APP_NoopCmd(void)
      * void ATT_APP_NoopCmd( const ATT_APP_Noop_t *Msg )
      */
     ATT_APP_NoopCmd_t TestMsg;
-    UT_CheckEvent_t      EventTest;
+    UT_CheckEvent_t   EventTest;
 
     memset(&TestMsg, 0, sizeof(TestMsg));
 
@@ -108,16 +128,39 @@ void Test_ATT_APP_WakeupCmd(void)
      * Test Case For:
      * CFE_Status_t ATT_APP_WakeupCmd( const ATT_APP_WakeupCmd_t *Msg )
      *
-     * Each wakeup must increment the counter by exactly one
+     * Each wakeup increments the counter by exactly one, and the GNSS
+     * input is serviced once per ATT_APP_PLATFORM_WAKEUPS_PER_EPOCH wakeups.
      */
     ATT_APP_WakeupCmd_t TestMsg;
+    uint32              i;
 
     memset(&TestMsg, 0, sizeof(TestMsg));
-    ATT_APP_Data.WakeupCounter = 0;
+    memset(&ATT_APP_Data, 0, sizeof(ATT_APP_Data));
 
     UtAssert_INT32_EQ(ATT_APP_WakeupCmd(&TestMsg), CFE_SUCCESS);
     UtAssert_INT32_EQ(ATT_APP_WakeupCmd(&TestMsg), CFE_SUCCESS);
     UtAssert_UINT32_EQ(ATT_APP_Data.WakeupCounter, 2);
+
+    /* One wakeup short of an epoch period: input not serviced yet */
+    for (i = 2; i < ATT_APP_PLATFORM_WAKEUPS_PER_EPOCH - 1; ++i)
+    {
+        ATT_APP_WakeupCmd(&TestMsg);
+    }
+    UtAssert_STUB_COUNT(ATT_APP_GNSS_Tick, 0);
+
+    /* The wakeup that completes the period services it once */
+    ATT_APP_WakeupCmd(&TestMsg);
+    UtAssert_STUB_COUNT(ATT_APP_GNSS_Tick, 1);
+    UtAssert_UINT32_EQ(ATT_APP_Data.WakeupsSinceEpoch, 0);
+    UtAssert_UINT32_EQ(ATT_APP_Data.WakeupCounter, ATT_APP_PLATFORM_WAKEUPS_PER_EPOCH);
+
+    /* And again exactly one period later, not before */
+    for (i = 0; i < ATT_APP_PLATFORM_WAKEUPS_PER_EPOCH; ++i)
+    {
+        UtAssert_STUB_COUNT(ATT_APP_GNSS_Tick, 1);
+        ATT_APP_WakeupCmd(&TestMsg);
+    }
+    UtAssert_STUB_COUNT(ATT_APP_GNSS_Tick, 2);
 }
 
 void Test_ATT_APP_ResetCountersCmd(void)
@@ -127,7 +170,7 @@ void Test_ATT_APP_ResetCountersCmd(void)
      * void ATT_APP_ResetCounters( const ATT_APP_ResetCounters_t *Msg )
      */
     ATT_APP_ResetCountersCmd_t TestMsg;
-    UT_CheckEvent_t               EventTest;
+    UT_CheckEvent_t            EventTest;
 
     memset(&TestMsg, 0, sizeof(TestMsg));
 
@@ -152,7 +195,7 @@ void Test_ATT_APP_ProcessCmd(void)
      */
     ATT_APP_ProcessCmd_t   TestMsg;
     ATT_APP_ExampleTable_t TestTblData;
-    void                     *TblPtr = &TestTblData;
+    void                  *TblPtr = &TestTblData;
 
     memset(&TestTblData, 0, sizeof(TestTblData));
     memset(&TestMsg, 0, sizeof(TestMsg));
@@ -212,7 +255,7 @@ void Test_ATT_APP_DisplayParamCmd(void)
      * void  ATT_APP_DisplayParamCmd( const ATT_APP_DisplayParamCmd_t *Msg )
      */
     ATT_APP_DisplayParamCmd_t TestMsg;
-    UT_CheckEvent_t              EventTest;
+    UT_CheckEvent_t           EventTest;
 
     memset(&TestMsg, 0, sizeof(TestMsg));
 

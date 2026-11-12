@@ -144,10 +144,10 @@ CFE_Status_t ATT_APP_ResetCountersCmd(const ATT_APP_ResetCountersCmd_t *Msg)
 /* * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * *  * *  * * * * */
 CFE_Status_t ATT_APP_ProcessCmd(const ATT_APP_ProcessCmd_t *Msg)
 {
-    CFE_Status_t               Status;
-    void                      *TblAddr;
+    CFE_Status_t            Status;
+    void                   *TblAddr;
     ATT_APP_ExampleTable_t *TblPtr;
-    const char                *TableName = "ATT_APP.ExampleTable";
+    const char             *TableName = "ATT_APP.ExampleTable";
 
     /* Sample Use of Example Table */
     ATT_APP_Data.CommandCounter++;

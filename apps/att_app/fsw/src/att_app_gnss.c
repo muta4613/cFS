@@ -349,14 +349,14 @@ static void ATT_APP_GNSS_WrapLog(void)
  *          See description in header file for argument/return detail
  *
  *-----------------------------------------------------------------*/
-CFE_Status_t ATT_APP_GNSS_Init(void)
+CFE_Status_t ATT_APP_GNSS_Init(uint8 InputMode)
 {
     osal_id_t FileSysId = OS_OBJECT_ID_UNDEFINED;
     int32     OsStatus;
 
     memset(&ATT_APP_Data.Gnss, 0, sizeof(ATT_APP_Data.Gnss));
     ATT_APP_Data.Gnss.FileId    = OS_OBJECT_ID_UNDEFINED;
-    ATT_APP_Data.Gnss.InputMode = ATT_APP_PLATFORM_GNSS_INPUT_MODE;
+    ATT_APP_Data.Gnss.InputMode = InputMode;
 
     CFE_MSG_Init(CFE_MSG_PTR(ATT_APP_Data.NavTlm.TelemetryHeader),
                  CFE_SB_ValueToMsgId(ATT_APP_NAV_TLM_MID),

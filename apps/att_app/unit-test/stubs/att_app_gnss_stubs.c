@@ -26,9 +26,11 @@
  * Generated stub function for ATT_APP_GNSS_Init()
  * ----------------------------------------------------
  */
-CFE_Status_t ATT_APP_GNSS_Init(void)
+CFE_Status_t ATT_APP_GNSS_Init(uint8 InputMode)
 {
     UT_GenStub_SetupReturnBuffer(ATT_APP_GNSS_Init, CFE_Status_t);
+
+    UT_GenStub_AddParam(ATT_APP_GNSS_Init, uint8, InputMode);
 
     UT_GenStub_Execute(ATT_APP_GNSS_Init, Basic, NULL);
 
