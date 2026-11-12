@@ -43,4 +43,14 @@
 #define ATT_APP_MISSION_STRING_VAL_LEN         ATT_APP_MISSION_CFGVAL(STRING_VAL_LEN)
 #define DEFAULT_ATT_APP_MISSION_STRING_VAL_LEN 10
 
+/**
+ * \brief Maximum number of satellites carried in one GNSS epoch
+ *
+ * Sizes the per-satellite {PRN, C/N0} array in the NAV telemetry packet and
+ * the parser's epoch buffer. Satellites reported by the receiver beyond this
+ * count are dropped (SatsInView still reports the receiver's own total).
+ */
+#define ATT_APP_MISSION_MAX_SATS         ATT_APP_MISSION_CFGVAL(MAX_SATS)
+#define DEFAULT_ATT_APP_MISSION_MAX_SATS 12
+
 #endif
