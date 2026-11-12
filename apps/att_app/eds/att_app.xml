@@ -24,33 +24,78 @@
     as prescribed in CCSDS book 876.0.
 
     Purpose:
-      This describes all interface objects for the Executive Services (CFE_ES)
-      core application
+      This describes all interface objects of ATT_APP, the GNSS signal-health
+      monitor: its commands, its housekeeping packet and its NAV packet.
+
+      It mirrors config/default_att_app_msgdefs.h and default_att_app_msgstruct.h,
+      which the non-EDS build uses. Keep the two in step.
+
+      The mission must supply (see sample_defs/eds):
+        ATT_APP/MAX_SATS and the CFE_MISSION/ATT_APP_*_TOPICID values for
+        CMD, SEND_HK, WAKEUP, HK_TLM and NAV_TLM.
 
 -->
 <PackageFile xmlns="http://www.ccsds.org/schema/sois/seds">
-  <Package name="ATT_APP" shortDescription="Sample Application Package">
+  <Package name="ATT_APP" shortDescription="GNSS signal-health monitor">
 
     <DataTypeSet>
 
-      <StringDataType name="ExampleString" length="${ATT_APP/STRING_VAL_LEN}" />
-
-      <ContainerDataType name="DisplayParam_Payload" shortDescription="Example Command with a payload/argument">
+      <ContainerDataType name="SetCnoThreshold_Payload" shortDescription="Payload of the SET_CNO_THRESHOLD command">
         <EntryList>
-          <Entry name="ValU32" type="BASE_TYPES/uint32" shortDescription="32 bit unsigned integer value" />
-          <Entry name="ValI16" type="BASE_TYPES/int16" shortDescription="16 bit signed integer value" />
-          <Entry name="ValStr" type="ExampleString" shortDescription="An example string" />
+          <Entry name="CnoThreshold" type="BASE_TYPES/uint8" shortDescription="New single-satellite low C/N0 threshold, dB-Hz" />
+          <PaddingEntry sizeInBits="24" />
         </EntryList>
       </ContainerDataType>
 
-      <ContainerDataType name="HkTlm_Payload" shortDescription="Sample App Housekeeping Content">
+      <ContainerDataType name="HkTlm_Payload" shortDescription="ATT_APP housekeeping content">
         <EntryList>
-          <Entry name="CommandCounter" type="BASE_TYPES/uint8" />
-          <Entry name="CommandErrorCounter" type="BASE_TYPES/uint8" />
+          <Entry name="CommandCounter" type="BASE_TYPES/uint8" shortDescription="Count of accepted ground commands" />
+          <Entry name="CommandErrorCounter" type="BASE_TYPES/uint8" shortDescription="Count of rejected ground commands" />
+          <Entry name="CnoThreshold" type="BASE_TYPES/uint8" shortDescription="Current low C/N0 threshold, dB-Hz" />
+          <Entry name="InputState" type="BASE_TYPES/uint8" shortDescription="0 = GNSS input closed, 1 = open" />
+          <Entry name="WakeupCounter" type="BASE_TYPES/uint32" shortDescription="Scheduler wakeups received" />
+          <Entry name="EpochCounter" type="BASE_TYPES/uint32" shortDescription="GNSS epochs processed and published" />
+          <Entry name="ParseErrorCounter" type="BASE_TYPES/uint32" shortDescription="NMEA sentences rejected by the parser" />
+        </EntryList>
+      </ContainerDataType>
+
+      <ContainerDataType name="SatCno" shortDescription="One satellite in the NAV packet">
+        <EntryList>
+          <Entry name="Prn" type="BASE_TYPES/uint8" shortDescription="Satellite ID, 0 for an unused entry" />
+          <Entry name="Cno" type="BASE_TYPES/uint8" shortDescription="C/N0 in dB-Hz, 0 if in view but not tracked" />
+        </EntryList>
+      </ContainerDataType>
+
+      <ArrayDataType name="SatCnoArray" dataTypeRef="SatCno" shortDescription="Per-satellite C/N0">
+        <DimensionList>
+          <Dimension size="${ATT_APP/MAX_SATS}" />
+        </DimensionList>
+      </ArrayDataType>
+
+      <ContainerDataType name="NavTlm_Payload" shortDescription="Navigation and signal-health content">
+        <EntryList>
+          <Entry name="Latitude" type="BASE_TYPES/double" shortDescription="Decimal degrees, north positive, 0 without a fix" />
+          <Entry name="Longitude" type="BASE_TYPES/double" shortDescription="Decimal degrees, east positive, 0 without a fix" />
+          <Entry name="Altitude" type="BASE_TYPES/float" shortDescription="Metres above mean sea level, 0 without a fix" />
+          <Entry name="MeanCno" type="BASE_TYPES/float" shortDescription="Mean C/N0 of the tracked satellites, dB-Hz" />
+          <Entry name="EpochCounter" type="BASE_TYPES/uint32" shortDescription="Epochs processed, including this one" />
+          <Entry name="ParseErrorCounter" type="BASE_TYPES/uint32" shortDescription="NMEA sentences rejected by the parser" />
+          <Entry name="UtcHour" type="BASE_TYPES/uint8" shortDescription="UTC time of the fix" />
+          <Entry name="UtcMinute" type="BASE_TYPES/uint8" />
+          <Entry name="UtcSecond" type="BASE_TYPES/uint8" />
+          <Entry name="UtcCentisecond" type="BASE_TYPES/uint8" />
+          <Entry name="FixQuality" type="BASE_TYPES/uint8" shortDescription="GGA fix quality, 0 = no fix" />
+          <Entry name="SatsUsed" type="BASE_TYPES/uint8" shortDescription="Satellites used in the position solution" />
+          <Entry name="SatsInView" type="BASE_TYPES/uint8" shortDescription="Satellites in view as reported by the receiver" />
+          <Entry name="HealthFlags" type="BASE_TYPES/uint8" shortDescription="Bit 0 NO_FIX, bit 1 LOW_CNO_SAT, bit 2 BROADBAND_DROP" />
+          <Entry name="Sats" type="SatCnoArray" shortDescription="First SatsInView entries are valid, up to the array size" />
         </EntryList>
       </ContainerDataType>
 
       <ContainerDataType name="SendHkCmd" baseType="CFE_HDR/CommandHeader">
+      </ContainerDataType>
+
+      <ContainerDataType name="WakeupCmd" baseType="CFE_HDR/CommandHeader" shortDescription="Scheduler wakeup, 50 Hz">
       </ContainerDataType>
 
       <ContainerDataType name="CommandBase" baseType="CFE_HDR/CommandHeader">
@@ -59,6 +104,12 @@
       <ContainerDataType name="HkTlm" baseType="CFE_HDR/TelemetryHeader">
         <EntryList>
           <Entry type="HkTlm_Payload" name="Payload" />
+        </EntryList>
+      </ContainerDataType>
+
+      <ContainerDataType name="NavTlm" baseType="CFE_HDR/TelemetryHeader">
+        <EntryList>
+          <Entry type="NavTlm_Payload" name="Payload" />
         </EntryList>
       </ContainerDataType>
 
@@ -74,28 +125,19 @@
         </ConstraintSet>
       </ContainerDataType>
 
-      <ContainerDataType name="ProcessCmd" baseType="CommandBase">
+      <ContainerDataType name="SetCnoThresholdCmd" baseType="CommandBase">
         <ConstraintSet>
           <ValueConstraint entry="Sec.FunctionCode" value="2" />
         </ConstraintSet>
+        <EntryList>
+          <Entry type="SetCnoThreshold_Payload" name="Payload" />
+        </EntryList>
       </ContainerDataType>
 
-      <ContainerDataType name="DisplayParamCmd" baseType="CommandBase">
+      <ContainerDataType name="RestartLogCmd" baseType="CommandBase">
         <ConstraintSet>
           <ValueConstraint entry="Sec.FunctionCode" value="3" />
         </ConstraintSet>
-        <EntryList>
-          <Entry type="DisplayParam_Payload" name="Payload" />
-        </EntryList>
-      </ContainerDataType>
-
-      <!-- Note the type name here must be "ExampleTable" to match the C table definition file,
-           but the source code uses the type "ExampleTable" -->
-      <ContainerDataType name="ExampleTable" shortDescription="Example ExampleTable structure">
-        <EntryList>
-          <Entry name="Int1" type="BASE_TYPES/uint16" />
-          <Entry name="Int2" type="BASE_TYPES/uint16" />
-        </EntryList>
       </ContainerDataType>
 
     </DataTypeSet>
@@ -103,11 +145,6 @@
     <ComponentSet>
       <Component name="Application">
         <RequiredInterfaceSet>
-          <Interface name="ExampleTable" shortDescription="Table interface" type="CFE_TBL/Table">
-            <GenericTypeMapSet>
-              <GenericTypeMap name="TableDataType" type="ExampleTable" />
-            </GenericTypeMapSet>
-          </Interface>
           <Interface name="CMD" shortDescription="Software bus telecommand interface" type="CFE_SB/Telecommand">
             <GenericTypeMapSet>
               <GenericTypeMap name="TelecommandDataType" type="CommandBase" />
@@ -119,9 +156,20 @@
               <GenericTypeMap name="TelecommandDataType" type="SendHkCmd" />
             </GenericTypeMapSet>
           </Interface>
+          <Interface name="WAKEUP" shortDescription="Scheduler wakeup interface" type="CFE_SB/Telecommand">
+            <!-- This uses a bare spacepacket with no payload -->
+            <GenericTypeMapSet>
+              <GenericTypeMap name="TelecommandDataType" type="WakeupCmd" />
+            </GenericTypeMapSet>
+          </Interface>
           <Interface name="HK_TLM" shortDescription="Software bus housekeeping telemetry interface" type="CFE_SB/Telemetry">
             <GenericTypeMapSet>
               <GenericTypeMap name="TelemetryDataType" type="HkTlm" />
+            </GenericTypeMapSet>
+          </Interface>
+          <Interface name="NAV_TLM" shortDescription="Navigation and signal-health telemetry interface" type="CFE_SB/Telemetry">
+            <GenericTypeMapSet>
+              <GenericTypeMap name="TelemetryDataType" type="NavTlm" />
             </GenericTypeMapSet>
           </Interface>
         </RequiredInterfaceSet>
@@ -129,13 +177,17 @@
           <VariableSet>
             <Variable type="BASE_TYPES/uint16" readOnly="true" name="CmdTopicId" initialValue="${CFE_MISSION/ATT_APP_CMD_TOPICID}" />
             <Variable type="BASE_TYPES/uint16" readOnly="true" name="SendHkTopicId" initialValue="${CFE_MISSION/ATT_APP_SEND_HK_TOPICID}" />
+            <Variable type="BASE_TYPES/uint16" readOnly="true" name="WakeupTopicId" initialValue="${CFE_MISSION/ATT_APP_WAKEUP_TOPICID}" />
             <Variable type="BASE_TYPES/uint16" readOnly="true" name="HkTlmTopicId" initialValue="${CFE_MISSION/ATT_APP_HK_TLM_TOPICID}" />
+            <Variable type="BASE_TYPES/uint16" readOnly="true" name="NavTlmTopicId" initialValue="${CFE_MISSION/ATT_APP_NAV_TLM_TOPICID}" />
           </VariableSet>
           <!-- Assign fixed numbers to the "TopicId" parameter of each interface -->
           <ParameterMapSet>
             <ParameterMap interface="CMD" parameter="TopicId" variableRef="CmdTopicId" />
             <ParameterMap interface="SEND_HK" parameter="TopicId" variableRef="SendHkTopicId" />
+            <ParameterMap interface="WAKEUP" parameter="TopicId" variableRef="WakeupTopicId" />
             <ParameterMap interface="HK_TLM" parameter="TopicId" variableRef="HkTlmTopicId" />
+            <ParameterMap interface="NAV_TLM" parameter="TopicId" variableRef="NavTlmTopicId" />
           </ParameterMapSet>
         </Implementation>
       </Component>

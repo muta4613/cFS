@@ -6,7 +6,6 @@ set(APP_SRC_FILES
   fsw/src/att_app_gnss.c
   fsw/src/att_app_health.c
   fsw/src/att_app_nmea.c
-  fsw/src/att_app_utils.c
 )
 
 if (CFE_EDS_ENABLED)
@@ -23,12 +22,6 @@ endif()
 add_cfe_app(att_app ${APP_SRC_FILES})
 
 target_include_directories(att_app PUBLIC fsw/inc)
-# Include the public API from sample_lib to demonstrate how
-# to call library-provided functions
-add_cfe_app_dependency(att_app sample_lib)
-
-# Add table
-add_cfe_tables(att_app fsw/tables/att_app_tbl.c)
 
 # Install the recorded GNSS log next to the app so it can be opened
 # at runtime through the OSAL virtual path /cf/gnss_sample.nmea

@@ -41,10 +41,8 @@
 #include "att_app.h"
 #include "att_app_dispatch.h"
 #include "att_app_cmds.h"
-#include "att_app_utils.h"
 #include "att_app_msgids.h"
 #include "att_app_msg.h"
-#include "att_app_tbl.h"
 
 /*
  * Macro to add a test case to the list of tests to execute

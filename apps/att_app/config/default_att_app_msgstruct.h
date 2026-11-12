@@ -58,13 +58,13 @@ typedef struct
 typedef struct
 {
     CFE_MSG_CommandHeader_t CommandHeader; /**< \brief Command header */
-} ATT_APP_ProcessCmd_t;
+} ATT_APP_RestartLogCmd_t;
 
 typedef struct
 {
-    CFE_MSG_CommandHeader_t        CommandHeader; /**< \brief Command header */
-    ATT_APP_DisplayParam_Payload_t Payload;
-} ATT_APP_DisplayParamCmd_t;
+    CFE_MSG_CommandHeader_t           CommandHeader; /**< \brief Command header */
+    ATT_APP_SetCnoThreshold_Payload_t Payload;       /**< \brief Command payload */
+} ATT_APP_SetCnoThresholdCmd_t;
 
 /*************************************************************************/
 /*

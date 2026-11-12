@@ -28,12 +28,16 @@
 #include "att_app_fcncodes.h"
 #include "att_app_interface_cfg.h"
 
-typedef struct ATT_APP_DisplayParam_Payload
+/**
+ * \brief Payload of the SET_CNO_THRESHOLD command
+ *
+ * Padded to 4 bytes so the command has the same size on every compiler.
+ */
+typedef struct ATT_APP_SetCnoThreshold_Payload
 {
-    uint32 ValU32;                                 /**< 32 bit unsigned integer value */
-    int16  ValI16;                                 /**< 16 bit signed integer value */
-    char   ValStr[ATT_APP_MISSION_STRING_VAL_LEN]; /**< An example string */
-} ATT_APP_DisplayParam_Payload_t;
+    uint8 CnoThreshold; /**< \brief New single-satellite low C/N0 threshold, dB-Hz */
+    uint8 Padding[3];   /**< \brief Not used, send as 0 */
+} ATT_APP_SetCnoThreshold_Payload_t;
 
 /*************************************************************************/
 

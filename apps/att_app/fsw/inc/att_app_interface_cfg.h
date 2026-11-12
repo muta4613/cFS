@@ -34,16 +34,6 @@
 #include "att_app_interface_cfg_values.h"
 
 /**
- * \brief Length of string buffer in the Display Value command
- *
- * The Display Value command offers an example of how to use command
- * parameters of different types.  This macro controls the length
- * of the string parameter.
- */
-#define ATT_APP_MISSION_STRING_VAL_LEN         ATT_APP_MISSION_CFGVAL(STRING_VAL_LEN)
-#define DEFAULT_ATT_APP_MISSION_STRING_VAL_LEN 10
-
-/**
  * \brief Maximum number of satellites carried in one GNSS epoch
  *
  * Sizes the per-satellite {PRN, C/N0} array in the NAV telemetry packet and

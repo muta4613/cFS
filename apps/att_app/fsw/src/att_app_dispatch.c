@@ -18,7 +18,7 @@
 
 /**
  * \file
- *   This file contains the source code for the Sample App.
+ *   This file contains the source code for the ATT_APP command dispatch (non-EDS build).
  */
 
 /*
@@ -55,7 +55,7 @@ bool ATT_APP_VerifyCmdLength(const CFE_MSG_Message_t *MsgPtr, size_t ExpectedLen
 
         CFE_EVS_SendEvent(ATT_APP_CMD_LEN_ERR_EID,
                           CFE_EVS_EventType_ERROR,
-                          "Invalid Msg length: ID = 0x%X,  CC = %u, Len = %u, Expected = %u",
+                          "ATT_APP: Invalid Msg length: ID = 0x%X,  CC = %u, Len = %u, Expected = %u",
                           (unsigned int)CFE_SB_MsgIdToValue(MsgId),
                           (unsigned int)FcnCode,
                           (unsigned int)ActualLength,
@@ -71,7 +71,7 @@ bool ATT_APP_VerifyCmdLength(const CFE_MSG_Message_t *MsgPtr, size_t ExpectedLen
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
-/* SAMPLE ground commands                                                     */
+/* ATT_APP ground commands                                                    */
 /*                                                                            */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 void ATT_APP_ProcessGroundCommand(const CFE_SB_Buffer_t *SBBufPtr)
@@ -81,7 +81,7 @@ void ATT_APP_ProcessGroundCommand(const CFE_SB_Buffer_t *SBBufPtr)
     CFE_MSG_GetFcnCode(&SBBufPtr->Msg, &CommandCode);
 
     /*
-    ** Process SAMPLE app ground commands
+    ** Process ATT_APP ground commands
     */
     switch (CommandCode)
     {
@@ -99,24 +99,26 @@ void ATT_APP_ProcessGroundCommand(const CFE_SB_Buffer_t *SBBufPtr)
             }
             break;
 
-        case ATT_APP_PROCESS_CC:
-            if (ATT_APP_VerifyCmdLength(&SBBufPtr->Msg, sizeof(ATT_APP_ProcessCmd_t)))
+        case ATT_APP_SET_CNO_THRESHOLD_CC:
+            if (ATT_APP_VerifyCmdLength(&SBBufPtr->Msg, sizeof(ATT_APP_SetCnoThresholdCmd_t)))
             {
-                ATT_APP_ProcessCmd((const ATT_APP_ProcessCmd_t *)SBBufPtr);
+                ATT_APP_SetCnoThresholdCmd((const ATT_APP_SetCnoThresholdCmd_t *)SBBufPtr);
             }
             break;
 
-        case ATT_APP_DISPLAY_PARAM_CC:
-            if (ATT_APP_VerifyCmdLength(&SBBufPtr->Msg, sizeof(ATT_APP_DisplayParamCmd_t)))
+        case ATT_APP_RESTART_LOG_CC:
+            if (ATT_APP_VerifyCmdLength(&SBBufPtr->Msg, sizeof(ATT_APP_RestartLogCmd_t)))
             {
-                ATT_APP_DisplayParamCmd((const ATT_APP_DisplayParamCmd_t *)SBBufPtr);
+                ATT_APP_RestartLogCmd((const ATT_APP_RestartLogCmd_t *)SBBufPtr);
             }
             break;
 
         default:
+            /* An unknown command code is a rejected command like any other */
+            ATT_APP_Data.CommandErrorCounter++;
             CFE_EVS_SendEvent(ATT_APP_CC_ERR_EID,
                               CFE_EVS_EventType_ERROR,
-                              "Invalid ground command code: CC = %d",
+                              "ATT_APP: Invalid ground command code: CC = %d",
                               CommandCode);
             break;
     }
@@ -125,7 +127,7 @@ void ATT_APP_ProcessGroundCommand(const CFE_SB_Buffer_t *SBBufPtr)
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
 /*  Purpose:                                                                  */
-/*     This routine will process any packet that is received on the SAMPLE    */
+/*     This routine will process any packet that is received on the ATT_APP   */
 /*     command pipe.                                                          */
 /*                                                                            */
 /* * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * *  * *  * * * * */
@@ -168,7 +170,7 @@ void ATT_APP_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
         /* Unknown command */
         CFE_EVS_SendEvent(ATT_APP_MID_ERR_EID,
                           CFE_EVS_EventType_ERROR,
-                          "SAMPLE: invalid command packet,MID = 0x%x",
+                          "ATT_APP: invalid command packet,MID = 0x%x",
                           (unsigned int)CFE_SB_MsgIdToValue(MsgId));
     }
 }

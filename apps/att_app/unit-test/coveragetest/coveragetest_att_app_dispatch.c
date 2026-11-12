@@ -54,7 +54,7 @@ void Test_ATT_APP_TaskPipe(void)
     /* a buffer large enough for any command message */
     union
     {
-        CFE_SB_Buffer_t      SBBuf;
+        CFE_SB_Buffer_t   SBBuf;
         ATT_APP_NoopCmd_t Noop;
     } TestMsg;
     CFE_SB_MsgId_t    TestMsgId;
@@ -63,7 +63,7 @@ void Test_ATT_APP_TaskPipe(void)
     UT_CheckEvent_t   EventTest;
 
     memset(&TestMsg, 0, sizeof(TestMsg));
-    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_MID_ERR_EID, "SAMPLE: invalid command packet,MID = 0x%x");
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_MID_ERR_EID, "ATT_APP: invalid command packet,MID = 0x%x");
 
     /*
      * The CFE_MSG_GetMsgId() stub uses a data buffer to hold the
@@ -111,19 +111,20 @@ void Test_ATT_APP_ProcessGroundCommand(void)
     /* a buffer large enough for any command message */
     union
     {
-        CFE_SB_Buffer_t               SBBuf;
-        ATT_APP_NoopCmd_t          Noop;
-        ATT_APP_ResetCountersCmd_t Reset;
-        ATT_APP_ProcessCmd_t       Process;
-        ATT_APP_DisplayParamCmd_t  DisplayParam;
+        CFE_SB_Buffer_t              SBBuf;
+        ATT_APP_NoopCmd_t            Noop;
+        ATT_APP_ResetCountersCmd_t   Reset;
+        ATT_APP_SetCnoThresholdCmd_t SetCnoThreshold;
+        ATT_APP_RestartLogCmd_t      RestartLog;
     } TestMsg;
     UT_CheckEvent_t EventTest;
 
     memset(&TestMsg, 0, sizeof(TestMsg));
+    memset(&ATT_APP_Data, 0, sizeof(ATT_APP_Data));
 
     UT_CHECKEVENT_SETUP(&EventTest,
                         ATT_APP_CMD_LEN_ERR_EID,
-                        "Invalid Msg length: ID = 0x%X,  CC = %u, Len = %u, Expected = %u");
+                        "ATT_APP: Invalid Msg length: ID = 0x%X,  CC = %u, Len = %u, Expected = %u");
 
     /*
      * call with each of the supported command codes
@@ -178,63 +179,74 @@ void Test_ATT_APP_ProcessGroundCommand(void)
     UtAssert_STUB_COUNT(ATT_APP_ResetCountersCmd, 1);
     UtAssert_UINT32_EQ(EventTest.MatchCount, 2);
 
-    /* test dispatch of PROCESS */
-    /* note this will end up calling ATT_APP_Process(), and as such it needs to
-     * avoid dereferencing a table which does not exist. */
-    FcnCode = ATT_APP_PROCESS_CC;
-    Size    = sizeof(TestMsg.Process);
-    UT_SetDefaultReturnValue(UT_KEY(CFE_TBL_GetAddress), CFE_TBL_ERR_UNREGISTERED);
+    /* test dispatch of SET_CNO_THRESHOLD: right length is passed on */
+    FcnCode = ATT_APP_SET_CNO_THRESHOLD_CC;
+    Size    = sizeof(TestMsg.SetCnoThreshold);
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetFcnCode), &FcnCode, sizeof(FcnCode), false);
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetSize), &Size, sizeof(Size), false);
-
     ATT_APP_ProcessGroundCommand(&TestMsg.SBBuf);
+    UtAssert_STUB_COUNT(ATT_APP_SetCnoThresholdCmd, 1);
 
-    UtAssert_STUB_COUNT(ATT_APP_ProcessCmd, 1);
-
-    FcnCode = ATT_APP_PROCESS_CC;
-    Size    = sizeof(TestMsg.Process) - 1;
+    /* one byte short (payload truncated) is rejected before the handler sees it */
+    FcnCode = ATT_APP_SET_CNO_THRESHOLD_CC;
+    Size    = sizeof(TestMsg.SetCnoThreshold) - 1;
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetFcnCode), &FcnCode, sizeof(FcnCode), false);
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetSize), &Size, sizeof(Size), false);
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetFcnCode), &FcnCode, sizeof(FcnCode), false);
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetMsgId), &MsgId, sizeof(MsgId), false);
-
     ATT_APP_ProcessGroundCommand(&TestMsg.SBBuf);
-
-    UtAssert_STUB_COUNT(ATT_APP_ProcessCmd, 1);
+    UtAssert_STUB_COUNT(ATT_APP_SetCnoThresholdCmd, 1);
     UtAssert_UINT32_EQ(EventTest.MatchCount, 3);
 
-    /* test dispatch of DISPLAY_PARAM */
-    FcnCode = ATT_APP_DISPLAY_PARAM_CC;
-    Size    = sizeof(TestMsg.DisplayParam);
-    UT_SetDataBuffer(UT_KEY(CFE_MSG_GetFcnCode), &FcnCode, sizeof(FcnCode), false);
-    UT_SetDataBuffer(UT_KEY(CFE_MSG_GetSize), &Size, sizeof(Size), false);
-
-    ATT_APP_ProcessGroundCommand(&TestMsg.SBBuf);
-
-    UtAssert_STUB_COUNT(ATT_APP_DisplayParamCmd, 1);
-
-    FcnCode = ATT_APP_DISPLAY_PARAM_CC;
-    Size    = sizeof(TestMsg.DisplayParam) - 1;
+    /* a bare header with no payload at all is rejected too */
+    FcnCode = ATT_APP_SET_CNO_THRESHOLD_CC;
+    Size    = sizeof(TestMsg.Noop);
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetFcnCode), &FcnCode, sizeof(FcnCode), false);
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetSize), &Size, sizeof(Size), false);
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetFcnCode), &FcnCode, sizeof(FcnCode), false);
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetMsgId), &MsgId, sizeof(MsgId), false);
-
     ATT_APP_ProcessGroundCommand(&TestMsg.SBBuf);
-
-    UtAssert_STUB_COUNT(ATT_APP_DisplayParamCmd, 1);
+    UtAssert_STUB_COUNT(ATT_APP_SetCnoThresholdCmd, 1);
     UtAssert_UINT32_EQ(EventTest.MatchCount, 4);
+
+    /* test dispatch of RESTART_LOG */
+    FcnCode = ATT_APP_RESTART_LOG_CC;
+    Size    = sizeof(TestMsg.RestartLog);
+    UT_SetDataBuffer(UT_KEY(CFE_MSG_GetFcnCode), &FcnCode, sizeof(FcnCode), false);
+    UT_SetDataBuffer(UT_KEY(CFE_MSG_GetSize), &Size, sizeof(Size), false);
+    ATT_APP_ProcessGroundCommand(&TestMsg.SBBuf);
+    UtAssert_STUB_COUNT(ATT_APP_RestartLogCmd, 1);
+
+    /* one byte too long */
+    FcnCode = ATT_APP_RESTART_LOG_CC;
+    Size    = sizeof(TestMsg.RestartLog) + 1;
+    UT_SetDataBuffer(UT_KEY(CFE_MSG_GetFcnCode), &FcnCode, sizeof(FcnCode), false);
+    UT_SetDataBuffer(UT_KEY(CFE_MSG_GetSize), &Size, sizeof(Size), false);
+    UT_SetDataBuffer(UT_KEY(CFE_MSG_GetFcnCode), &FcnCode, sizeof(FcnCode), false);
+    UT_SetDataBuffer(UT_KEY(CFE_MSG_GetMsgId), &MsgId, sizeof(MsgId), false);
+    ATT_APP_ProcessGroundCommand(&TestMsg.SBBuf);
+    UtAssert_STUB_COUNT(ATT_APP_RestartLogCmd, 1);
+    UtAssert_UINT32_EQ(EventTest.MatchCount, 5);
+
+    /* every wrong-length command above was counted as a command error, nothing else was */
+    UtAssert_UINT32_EQ(ATT_APP_Data.CommandErrorCounter, 5);
 
     /* test an invalid CC */
     FcnCode = 1000;
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetFcnCode), &FcnCode, sizeof(FcnCode), false);
-    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_CC_ERR_EID, "Invalid ground command code: CC = %d");
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_CC_ERR_EID, "ATT_APP: Invalid ground command code: CC = %d");
     ATT_APP_ProcessGroundCommand(&TestMsg.SBBuf);
 
     /*
-     * Confirm that the event was generated only _once_
+     * Confirm that the event was generated only _once_, that the unknown
+     * code was counted as a command error and that no handler ran
      */
     UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
+    UtAssert_UINT32_EQ(ATT_APP_Data.CommandErrorCounter, 6);
+    UtAssert_STUB_COUNT(ATT_APP_NoopCmd, 1);
+    UtAssert_STUB_COUNT(ATT_APP_ResetCountersCmd, 1);
+    UtAssert_STUB_COUNT(ATT_APP_SetCnoThresholdCmd, 1);
+    UtAssert_STUB_COUNT(ATT_APP_RestartLogCmd, 1);
 }
 
 void Test_ATT_APP_VerifyCmdLength(void)
@@ -254,7 +266,7 @@ void Test_ATT_APP_VerifyCmdLength(void)
     UT_SetDataBuffer(UT_KEY(CFE_MSG_GetSize), &size, sizeof(size), false);
     UT_CHECKEVENT_SETUP(&EventTest,
                         ATT_APP_CMD_LEN_ERR_EID,
-                        "Invalid Msg length: ID = 0x%X,  CC = %u, Len = %u, Expected = %u");
+                        "ATT_APP: Invalid Msg length: ID = 0x%X,  CC = %u, Len = %u, Expected = %u");
 
     ATT_APP_VerifyCmdLength(NULL, size);
 

@@ -19,7 +19,7 @@
 /**
  * @file
  *
- * Main header file for the Sample application
+ * Main header file for the ATT_APP application
  */
 
 #ifndef ATT_APP_H
@@ -85,8 +85,6 @@ typedef struct
     ** Operational data (not reported in housekeeping)...
     */
     CFE_SB_PipeId_t CommandPipe;
-
-    CFE_TBL_Handle_t TblHandles[ATT_APP_PLATFORM_NUMBER_OF_TABLES];
 } ATT_APP_Data_t;
 
 /*

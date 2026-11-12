@@ -34,7 +34,7 @@ CFE_Status_t ATT_APP_SendHkCmd(const ATT_APP_SendHkCmd_t *Msg);
 CFE_Status_t ATT_APP_WakeupCmd(const ATT_APP_WakeupCmd_t *Msg);
 CFE_Status_t ATT_APP_NoopCmd(const ATT_APP_NoopCmd_t *Msg);
 CFE_Status_t ATT_APP_ResetCountersCmd(const ATT_APP_ResetCountersCmd_t *Msg);
-CFE_Status_t ATT_APP_ProcessCmd(const ATT_APP_ProcessCmd_t *Msg);
-CFE_Status_t ATT_APP_DisplayParamCmd(const ATT_APP_DisplayParamCmd_t *Msg);
+CFE_Status_t ATT_APP_SetCnoThresholdCmd(const ATT_APP_SetCnoThresholdCmd_t *Msg);
+CFE_Status_t ATT_APP_RestartLogCmd(const ATT_APP_RestartLogCmd_t *Msg);
 
 #endif /* ATT_APP_CMDS_H */

@@ -18,7 +18,10 @@
 
 /**
  * \file
- *   This file contains the source code for the Sample App.
+ *   This file contains the source code for the ATT_APP command dispatch (EDS build).
+ *
+ *   The EDS dispatcher checks message ID, length and command code against
+ *   eds/att_app.xml; anything it rejects is counted as a command error here.
  */
 
 /*
@@ -35,21 +38,25 @@
 #include "att_app_eds_dictionary.h"
 
 /*
- * Define a lookup table for SAMPLE app command codes
+ * Define a lookup table for ATT_APP command codes
  */
 /* clang-format off */
-static const EdsDispatchTable_EdsComponent_ATT_APP_Application_CFE_SB_Telecommand_t SAMPLE_TC_DISPATCH_TABLE =
+static const EdsDispatchTable_EdsComponent_ATT_APP_Application_CFE_SB_Telecommand_t ATT_APP_TC_DISPATCH_TABLE =
 {
     .CMD =
     {
-        .NoopCmd_indication          = ATT_APP_NoopCmd,
-        .ResetCountersCmd_indication = ATT_APP_ResetCountersCmd,
-        .ProcessCmd_indication       = ATT_APP_ProcessCmd,
-        .DisplayParamCmd_indication  = ATT_APP_DisplayParamCmd
+        .NoopCmd_indication            = ATT_APP_NoopCmd,
+        .ResetCountersCmd_indication   = ATT_APP_ResetCountersCmd,
+        .SetCnoThresholdCmd_indication = ATT_APP_SetCnoThresholdCmd,
+        .RestartLogCmd_indication      = ATT_APP_RestartLogCmd
     },
     .SEND_HK =
     {
         .indication = ATT_APP_SendHkCmd
+    },
+    .WAKEUP =
+    {
+        .indication = ATT_APP_WakeupCmd
     }
 };
 /* clang-format on */
@@ -57,7 +64,7 @@ static const EdsDispatchTable_EdsComponent_ATT_APP_Application_CFE_SB_Telecomman
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
 /*  Purpose:                                                                  */
-/*     This routine will process any packet that is received on the SAMPLE    */
+/*     This routine will process any packet that is received on the ATT_APP   */
 /*     command pipe.                                                          */
 /*                                                                            */
 /* * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * *  * *  * * * * */
@@ -68,7 +75,7 @@ void ATT_APP_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
     CFE_MSG_Size_t    MsgSize;
     CFE_MSG_FcnCode_t MsgFc;
 
-    Status = EdsDispatch_EdsComponent_ATT_APP_Application_Telecommand(SBBufPtr, &SAMPLE_TC_DISPATCH_TABLE);
+    Status = EdsDispatch_EdsComponent_ATT_APP_Application_Telecommand(SBBufPtr, &ATT_APP_TC_DISPATCH_TABLE);
 
     if (Status != CFE_SUCCESS)
     {
@@ -81,14 +88,14 @@ void ATT_APP_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
         {
             CFE_EVS_SendEvent(ATT_APP_MID_ERR_EID,
                               CFE_EVS_EventType_ERROR,
-                              "SAMPLE: invalid command packet,MID = 0x%x",
+                              "ATT_APP: invalid command packet,MID = 0x%x",
                               (unsigned int)CFE_SB_MsgIdToValue(MsgId));
         }
         else if (Status == CFE_STATUS_WRONG_MSG_LENGTH)
         {
             CFE_EVS_SendEvent(ATT_APP_CMD_LEN_ERR_EID,
                               CFE_EVS_EventType_ERROR,
-                              "Invalid Msg length: ID = 0x%X,  CC = %u, Len = %u",
+                              "ATT_APP: Invalid Msg length: ID = 0x%X,  CC = %u, Len = %u",
                               (unsigned int)CFE_SB_MsgIdToValue(MsgId),
                               (unsigned int)MsgFc,
                               (unsigned int)MsgSize);
@@ -97,7 +104,7 @@ void ATT_APP_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
         {
             CFE_EVS_SendEvent(ATT_APP_CC_ERR_EID,
                               CFE_EVS_EventType_ERROR,
-                              "SAMPLE: Invalid ground command code: CC = %d",
+                              "ATT_APP: Invalid ground command code: CC = %d",
                               (int)MsgFc);
         }
     }

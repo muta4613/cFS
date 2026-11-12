@@ -18,7 +18,7 @@
 
 /**
  * \file
- *   This file contains the source code for the Sample App.
+ *   This file contains the source code for the ATT_APP application: entry point, main loop and initialization.
  */
 
 /*
@@ -26,10 +26,8 @@
 */
 #include "att_app.h"
 #include "att_app_cmds.h"
-#include "att_app_utils.h"
 #include "att_app_eventids.h"
 #include "att_app_dispatch.h"
-#include "att_app_tbl.h"
 #include "att_app_version.h"
 
 /*
@@ -75,7 +73,7 @@ void ATT_APP_Main(void)
     }
 
     /*
-    ** Sample App Runloop
+    ** ATT_APP Runloop
     */
     while (CFE_ES_RunLoop(&ATT_APP_Data.RunStatus) == true)
     {
@@ -100,7 +98,7 @@ void ATT_APP_Main(void)
         {
             CFE_EVS_SendEvent(ATT_APP_PIPE_ERR_EID,
                               CFE_EVS_EventType_ERROR,
-                              "SAMPLE APP: SB Pipe Read Error, App Will Exit");
+                              "ATT_APP: SB Pipe Read Error, App Will Exit");
 
             ATT_APP_Data.RunStatus = CFE_ES_RunStatus_APP_ERROR;
         }
@@ -137,7 +135,7 @@ CFE_Status_t ATT_APP_Init(void)
                               CFE_EVS_EventFilter_BINARY);
     if (status != CFE_SUCCESS)
     {
-        CFE_ES_WriteToSysLog("Sample App: Error Registering Events, RC = 0x%08lX\n", (unsigned long)status);
+        CFE_ES_WriteToSysLog("ATT_APP: Error Registering Events, RC = 0x%08lX\n", (unsigned long)status);
     }
     else
     {
@@ -156,7 +154,7 @@ CFE_Status_t ATT_APP_Init(void)
         {
             CFE_EVS_SendEvent(ATT_APP_CR_PIPE_ERR_EID,
                               CFE_EVS_EventType_ERROR,
-                              "Sample App: Error creating SB Command Pipe, RC = 0x%08lX",
+                              "ATT_APP: Error creating SB Command Pipe, RC = 0x%08lX",
                               (unsigned long)status);
         }
     }
@@ -171,7 +169,7 @@ CFE_Status_t ATT_APP_Init(void)
         {
             CFE_EVS_SendEvent(ATT_APP_SUB_HK_ERR_EID,
                               CFE_EVS_EventType_ERROR,
-                              "Sample App: Error Subscribing to HK request, RC = 0x%08lX",
+                              "ATT_APP: Error Subscribing to HK request, RC = 0x%08lX",
                               (unsigned long)status);
         }
     }
@@ -186,7 +184,7 @@ CFE_Status_t ATT_APP_Init(void)
         {
             CFE_EVS_SendEvent(ATT_APP_SUB_CMD_ERR_EID,
                               CFE_EVS_EventType_ERROR,
-                              "Sample App: Error Subscribing to Commands, RC = 0x%08lX",
+                              "ATT_APP: Error Subscribing to Commands, RC = 0x%08lX",
                               (unsigned long)status);
         }
     }
@@ -201,7 +199,7 @@ CFE_Status_t ATT_APP_Init(void)
         {
             CFE_EVS_SendEvent(ATT_APP_SUB_WAKEUP_ERR_EID,
                               CFE_EVS_EventType_ERROR,
-                              "ATT App: Error Subscribing to Wakeup, RC = 0x%08lX",
+                              "ATT_APP: Error Subscribing to Wakeup, RC = 0x%08lX",
                               (unsigned long)status);
         }
     }
@@ -217,37 +215,14 @@ CFE_Status_t ATT_APP_Init(void)
 
     if (status == CFE_SUCCESS)
     {
-        /*
-        ** Register Example Table(s)
-        */
-        status = CFE_TBL_Register(&ATT_APP_Data.TblHandles[0],
-                                  "ExampleTable",
-                                  sizeof(ATT_APP_ExampleTable_t),
-                                  CFE_TBL_OPT_DEFAULT,
-                                  ATT_APP_TblValidationFunc);
-        if (status != CFE_SUCCESS)
-        {
-            CFE_EVS_SendEvent(ATT_APP_TABLE_REG_ERR_EID,
-                              CFE_EVS_EventType_ERROR,
-                              "Sample App: Error Registering Example Table, RC = 0x%08lX",
-                              (unsigned long)status);
-        }
-        else
-        {
-            status = CFE_TBL_Load(ATT_APP_Data.TblHandles[0], CFE_TBL_SRC_FILE, ATT_APP_PLATFORM_TABLE_FILE);
-        }
-
         CFE_Config_GetVersionString(VersionString,
                                     ATT_APP_CFG_MAX_VERSION_STR_LEN,
-                                    "Sample App",
+                                    "ATT_APP",
                                     ATT_APP_VERSION,
                                     ATT_APP_BUILD_CODENAME,
                                     ATT_APP_LAST_OFFICIAL);
 
-        CFE_EVS_SendEvent(ATT_APP_INIT_INF_EID,
-                          CFE_EVS_EventType_INFORMATION,
-                          "Sample App Initialized.%s",
-                          VersionString);
+        CFE_EVS_SendEvent(ATT_APP_INIT_INF_EID, CFE_EVS_EventType_INFORMATION, "ATT_APP Initialized.%s", VersionString);
     }
 
     return status;

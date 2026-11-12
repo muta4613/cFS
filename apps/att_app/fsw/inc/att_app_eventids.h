@@ -19,7 +19,7 @@
 /**
  * @file
  *
- * Define Sample App Events IDs
+ * Define ATT_APP Events IDs
  */
 
 #ifndef ATT_APP_EVENTS_H
@@ -33,11 +33,11 @@
 #define ATT_APP_MID_ERR_EID        5
 #define ATT_APP_CMD_LEN_ERR_EID    6
 #define ATT_APP_PIPE_ERR_EID       7
-#define ATT_APP_VALUE_INF_EID      8
+/* 8 was the sample DISPLAY_PARAM event: retired, not reused */
 #define ATT_APP_CR_PIPE_ERR_EID    9
 #define ATT_APP_SUB_HK_ERR_EID     10
 #define ATT_APP_SUB_CMD_ERR_EID    11
-#define ATT_APP_TABLE_REG_ERR_EID  12
+/* 12 was the example table registration error: retired, not reused */
 #define ATT_APP_SUB_WAKEUP_ERR_EID 13
 
 /* GNSS input */
@@ -55,5 +55,10 @@
 #define ATT_APP_LOW_CNO_CLEAR_INF_EID      23 /**< \brief LOW_CNO_SAT cleared */
 #define ATT_APP_INTERFERENCE_ERR_EID       24 /**< \brief BROADBAND_DROP set: possible interference */
 #define ATT_APP_INTERFERENCE_CLEAR_INF_EID 25 /**< \brief BROADBAND_DROP cleared */
+
+/* Commands */
+#define ATT_APP_CNO_THRESHOLD_INF_EID 26 /**< \brief SET_CNO_THRESHOLD accepted */
+#define ATT_APP_CNO_THRESHOLD_ERR_EID 27 /**< \brief SET_CNO_THRESHOLD rejected: value out of range */
+#define ATT_APP_RESTART_LOG_INF_EID   28 /**< \brief RESTART_LOG accepted */
 
 #endif /* ATT_APP_EVENTS_H */

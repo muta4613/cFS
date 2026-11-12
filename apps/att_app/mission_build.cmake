@@ -17,9 +17,6 @@ set(ATT_APP_MISSION_CONFIG_FILE_LIST
   att_app_msg.h
   att_app_msgdefs.h
   att_app_msgstruct.h
-  att_app_tbl.h
-  att_app_tbldefs.h
-  att_app_tblstruct.h
   att_app_topicid_values.h
 )
 

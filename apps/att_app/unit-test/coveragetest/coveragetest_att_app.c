@@ -35,7 +35,6 @@
 /*
  * Includes
  */
-#include "sample_lib.h" /* For SAMPLE_LIB_Function */
 #include "att_app_coveragetest_common.h"
 
 /*
@@ -126,7 +125,7 @@ void Test_ATT_APP_Main(void)
      */
     UT_SetDeferredRetcode(UT_KEY(CFE_ES_RunLoop), 1, true);
     UT_SetDeferredRetcode(UT_KEY(CFE_SB_ReceiveBuffer), 1, CFE_SB_PIPE_RD_ERR);
-    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_PIPE_ERR_EID, "SAMPLE APP: SB Pipe Read Error, App Will Exit");
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_PIPE_ERR_EID, "ATT_APP: SB Pipe Read Error, App Will Exit");
 
     /*
      * Invoke again
@@ -145,9 +144,15 @@ void Test_ATT_APP_Init(void)
      * Test Case For:
      * CFE_Status_t ATT_APP_Init( void )
      */
+    UT_CheckEvent_t EventTest;
 
-    /* nominal case should return CFE_SUCCESS */
+    /* nominal case should return CFE_SUCCESS, announce itself and set up the GNSS input in the configured mode */
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_INIT_INF_EID, NULL);
     UtAssert_INT32_EQ(ATT_APP_Init(), CFE_SUCCESS);
+    UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
+    UtAssert_STUB_COUNT(CFE_SB_Subscribe, 3); /* HK request, ground commands, scheduler wakeup */
+    UtAssert_STUB_COUNT(ATT_APP_GNSS_Init, 1);
+    UtAssert_UINT32_EQ(ATT_APP_Data.RunStatus, CFE_ES_RunStatus_APP_RUN);
 
     /*
      * Trigger a failure for each of the sub-calls, and confirm a write to syslog for
@@ -162,6 +167,7 @@ void Test_ATT_APP_Init(void)
     UtAssert_INT32_EQ(ATT_APP_Init(), CFE_SB_BAD_ARGUMENT);
     UtAssert_STUB_COUNT(CFE_EVS_SendEvent, 2); /* 1 from previous nominal case, 1 from this error path */
 
+    /* each of the three subscriptions in turn */
     UT_SetDeferredRetcode(UT_KEY(CFE_SB_Subscribe), 1, CFE_SB_BAD_ARGUMENT);
     UtAssert_INT32_EQ(ATT_APP_Init(), CFE_SB_BAD_ARGUMENT);
     UtAssert_STUB_COUNT(CFE_EVS_SendEvent, 3); /* 1 additional event sent from this error path */
@@ -170,9 +176,19 @@ void Test_ATT_APP_Init(void)
     UtAssert_INT32_EQ(ATT_APP_Init(), CFE_SB_BAD_ARGUMENT);
     UtAssert_STUB_COUNT(CFE_EVS_SendEvent, 4); /* 1 additional event sent from this error path */
 
-    UT_SetDeferredRetcode(UT_KEY(CFE_TBL_Register), 1, CFE_TBL_ERR_INVALID_OPTIONS);
-    UtAssert_INT32_EQ(ATT_APP_Init(), CFE_TBL_ERR_INVALID_OPTIONS);
-    UtAssert_STUB_COUNT(CFE_EVS_SendEvent, 6); /* 1 from table registration error, 1 from successful init event */
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_SUB_WAKEUP_ERR_EID, NULL);
+    UT_SetDeferredRetcode(UT_KEY(CFE_SB_Subscribe), 3, CFE_SB_BAD_ARGUMENT);
+    UtAssert_INT32_EQ(ATT_APP_Init(), CFE_SB_BAD_ARGUMENT);
+    UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
+
+    /* None of the failed attempts got as far as the GNSS input */
+    UtAssert_STUB_COUNT(ATT_APP_GNSS_Init, 1);
+
+    /* A failure reported by the GNSS set-up is passed on, without the "initialized" event */
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_INIT_INF_EID, NULL);
+    UT_SetDeferredRetcode(UT_KEY(ATT_APP_GNSS_Init), 1, CFE_STATUS_EXTERNAL_RESOURCE_FAIL);
+    UtAssert_INT32_EQ(ATT_APP_Init(), CFE_STATUS_EXTERNAL_RESOURCE_FAIL);
+    UtAssert_UINT32_EQ(EventTest.MatchCount, 0);
 }
 
 /*

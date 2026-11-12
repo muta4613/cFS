@@ -34,6 +34,7 @@
 
 #include "cfe_mission_eds_designparameters.h"
 
-#define CFE_MISSION_ES_CFGVAL(x) EdsParam_CFE_MISSION_ES_##x
+/* Mission-scope values come from the ATT_APP package of the mission EDS design parameters */
+#define ATT_APP_MISSION_CFGVAL(x) EdsParam_ATT_APP_##x
 
 #endif

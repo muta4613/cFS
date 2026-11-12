@@ -25,8 +25,14 @@ ATT_HK_TLM_MID = 0x0889  # 0x0800 telemetry base + topic 0x89
 #   bytes 12-15 padding
 #   byte  16    CommandCounter
 #   byte  17    CommandErrorCounter
-#   bytes 18-19 Spare
+#   byte  18    CnoThreshold
+#   byte  19    InputState
 #   bytes 20-23 WakeupCounter (uint32)
+#   bytes 24-27 EpochCounter (uint32)
+#   bytes 28-31 ParseErrorCounter (uint32)
+#
+# This script only shows the three original counters. gnss_monitor.py in the
+# same directory decodes everything, including the NAV packet and events.
 
 
 def main():

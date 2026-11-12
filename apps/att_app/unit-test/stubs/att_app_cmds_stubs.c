@@ -27,22 +27,6 @@
 
 /*
  * ----------------------------------------------------
- * Generated stub function for ATT_APP_DisplayParamCmd()
- * ----------------------------------------------------
- */
-CFE_Status_t ATT_APP_DisplayParamCmd(const ATT_APP_DisplayParamCmd_t *Msg)
-{
-    UT_GenStub_SetupReturnBuffer(ATT_APP_DisplayParamCmd, CFE_Status_t);
-
-    UT_GenStub_AddParam(ATT_APP_DisplayParamCmd, const ATT_APP_DisplayParamCmd_t *, Msg);
-
-    UT_GenStub_Execute(ATT_APP_DisplayParamCmd, Basic, NULL);
-
-    return UT_GenStub_GetReturnValue(ATT_APP_DisplayParamCmd, CFE_Status_t);
-}
-
-/*
- * ----------------------------------------------------
  * Generated stub function for ATT_APP_NoopCmd()
  * ----------------------------------------------------
  */
@@ -55,22 +39,6 @@ CFE_Status_t ATT_APP_NoopCmd(const ATT_APP_NoopCmd_t *Msg)
     UT_GenStub_Execute(ATT_APP_NoopCmd, Basic, NULL);
 
     return UT_GenStub_GetReturnValue(ATT_APP_NoopCmd, CFE_Status_t);
-}
-
-/*
- * ----------------------------------------------------
- * Generated stub function for ATT_APP_ProcessCmd()
- * ----------------------------------------------------
- */
-CFE_Status_t ATT_APP_ProcessCmd(const ATT_APP_ProcessCmd_t *Msg)
-{
-    UT_GenStub_SetupReturnBuffer(ATT_APP_ProcessCmd, CFE_Status_t);
-
-    UT_GenStub_AddParam(ATT_APP_ProcessCmd, const ATT_APP_ProcessCmd_t *, Msg);
-
-    UT_GenStub_Execute(ATT_APP_ProcessCmd, Basic, NULL);
-
-    return UT_GenStub_GetReturnValue(ATT_APP_ProcessCmd, CFE_Status_t);
 }
 
 /*
@@ -91,6 +59,22 @@ CFE_Status_t ATT_APP_ResetCountersCmd(const ATT_APP_ResetCountersCmd_t *Msg)
 
 /*
  * ----------------------------------------------------
+ * Generated stub function for ATT_APP_RestartLogCmd()
+ * ----------------------------------------------------
+ */
+CFE_Status_t ATT_APP_RestartLogCmd(const ATT_APP_RestartLogCmd_t *Msg)
+{
+    UT_GenStub_SetupReturnBuffer(ATT_APP_RestartLogCmd, CFE_Status_t);
+
+    UT_GenStub_AddParam(ATT_APP_RestartLogCmd, const ATT_APP_RestartLogCmd_t *, Msg);
+
+    UT_GenStub_Execute(ATT_APP_RestartLogCmd, Basic, NULL);
+
+    return UT_GenStub_GetReturnValue(ATT_APP_RestartLogCmd, CFE_Status_t);
+}
+
+/*
+ * ----------------------------------------------------
  * Generated stub function for ATT_APP_SendHkCmd()
  * ----------------------------------------------------
  */
@@ -103,6 +87,22 @@ CFE_Status_t ATT_APP_SendHkCmd(const ATT_APP_SendHkCmd_t *Msg)
     UT_GenStub_Execute(ATT_APP_SendHkCmd, Basic, NULL);
 
     return UT_GenStub_GetReturnValue(ATT_APP_SendHkCmd, CFE_Status_t);
+}
+
+/*
+ * ----------------------------------------------------
+ * Generated stub function for ATT_APP_SetCnoThresholdCmd()
+ * ----------------------------------------------------
+ */
+CFE_Status_t ATT_APP_SetCnoThresholdCmd(const ATT_APP_SetCnoThresholdCmd_t *Msg)
+{
+    UT_GenStub_SetupReturnBuffer(ATT_APP_SetCnoThresholdCmd, CFE_Status_t);
+
+    UT_GenStub_AddParam(ATT_APP_SetCnoThresholdCmd, const ATT_APP_SetCnoThresholdCmd_t *, Msg);
+
+    UT_GenStub_Execute(ATT_APP_SetCnoThresholdCmd, Basic, NULL);
+
+    return UT_GenStub_GetReturnValue(ATT_APP_SetCnoThresholdCmd, CFE_Status_t);
 }
 
 /*

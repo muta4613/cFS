@@ -19,7 +19,7 @@
 /**
  * @file
  *
- * Main header file for the SAMPLE application
+ * Command dispatch for the ATT_APP application
  */
 
 #ifndef ATT_APP_DISPATCH_H

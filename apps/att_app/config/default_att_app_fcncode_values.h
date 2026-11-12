@@ -18,7 +18,7 @@
 
 /**
  * @file
- *   Specification for the CFE Executive Services (CFE_ES) command function codes
+ *   Specification for the ATT_APP command function code values
  *
  * @note
  *   This file should be strictly limited to the command/function code (CC)
@@ -36,10 +36,10 @@
 
 enum ATT_APP_FunctionCode_
 {
-    ATT_APP_FunctionCode_NOOP           = 0,
-    ATT_APP_FunctionCode_RESET_COUNTERS = 1,
-    ATT_APP_FunctionCode_PROCESS        = 2,
-    ATT_APP_FunctionCode_DISPLAY_PARAM  = 3,
+    ATT_APP_FunctionCode_NOOP              = 0,
+    ATT_APP_FunctionCode_RESET_COUNTERS    = 1,
+    ATT_APP_FunctionCode_SET_CNO_THRESHOLD = 2,
+    ATT_APP_FunctionCode_RESTART_LOG       = 3,
 };
 
 #endif

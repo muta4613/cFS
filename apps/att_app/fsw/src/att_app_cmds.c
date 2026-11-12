@@ -18,7 +18,7 @@
 
 /**
  * \file
- *   This file contains the source code for the Sample App Ground Command-handling functions
+ *   This file contains the source code for the ATT_APP command-handling functions
  */
 
 /*
@@ -29,12 +29,7 @@
 #include "att_app_msgids.h"
 #include "att_app_eventids.h"
 #include "att_app_version.h"
-#include "att_app_tbl.h"
-#include "att_app_utils.h"
 #include "att_app_msg.h"
-
-/* The sample_lib module provides the SAMPLE_Function() prototype */
-#include "sample_lib.h"
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
@@ -46,8 +41,6 @@
 /* * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * *  * *  * * * * */
 CFE_Status_t ATT_APP_SendHkCmd(const ATT_APP_SendHkCmd_t *Msg)
 {
-    int i;
-
     /*
     ** Get command execution counters...
     */
@@ -65,14 +58,6 @@ CFE_Status_t ATT_APP_SendHkCmd(const ATT_APP_SendHkCmd_t *Msg)
     */
     CFE_SB_TimeStampMsg(CFE_MSG_PTR(ATT_APP_Data.HkTlm.TelemetryHeader));
     CFE_SB_TransmitMsg(CFE_MSG_PTR(ATT_APP_Data.HkTlm.TelemetryHeader), true);
-
-    /*
-    ** Manage any pending table loads, validations, etc.
-    */
-    for (i = 0; i < ATT_APP_PLATFORM_NUMBER_OF_TABLES; i++)
-    {
-        CFE_TBL_Manage(ATT_APP_Data.TblHandles[i]);
-    }
 
     return CFE_SUCCESS;
 }
@@ -101,7 +86,7 @@ CFE_Status_t ATT_APP_WakeupCmd(const ATT_APP_WakeupCmd_t *Msg)
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
-/* SAMPLE NOOP commands                                                       */
+/* NOOP command                                                               */
 /*                                                                            */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 CFE_Status_t ATT_APP_NoopCmd(const ATT_APP_NoopCmd_t *Msg)
@@ -110,7 +95,7 @@ CFE_Status_t ATT_APP_NoopCmd(const ATT_APP_NoopCmd_t *Msg)
 
     CFE_EVS_SendEvent(ATT_APP_NOOP_INF_EID,
                       CFE_EVS_EventType_INFORMATION,
-                      "SAMPLE: NOOP command from Mustafa's Build %s",
+                      "ATT_APP: NOOP command, version %s",
                       ATT_APP_VERSION);
 
     return CFE_SUCCESS;
@@ -132,7 +117,7 @@ CFE_Status_t ATT_APP_ResetCountersCmd(const ATT_APP_ResetCountersCmd_t *Msg)
     ATT_APP_Data.Gnss.EpochCounter      = 0;
     ATT_APP_Data.Gnss.ParseErrorCounter = 0;
 
-    CFE_EVS_SendEvent(ATT_APP_RESET_INF_EID, CFE_EVS_EventType_INFORMATION, "SAMPLE: RESET command");
+    CFE_EVS_SendEvent(ATT_APP_RESET_INF_EID, CFE_EVS_EventType_INFORMATION, "ATT_APP: RESET_COUNTERS command");
 
     return CFE_SUCCESS;
 }
@@ -140,59 +125,60 @@ CFE_Status_t ATT_APP_ResetCountersCmd(const ATT_APP_ResetCountersCmd_t *Msg)
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
 /*  Purpose:                                                                  */
-/*         This function Process Ground Station Command                       */
+/*         Change the C/N0 level below which a single tracked satellite is   */
+/*         flagged as weak. The value is range checked: a threshold outside  */
+/*         what a receiver can report would either never trip or always trip.*/
 /*                                                                            */
 /* * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * *  * *  * * * * */
-CFE_Status_t ATT_APP_ProcessCmd(const ATT_APP_ProcessCmd_t *Msg)
+CFE_Status_t ATT_APP_SetCnoThresholdCmd(const ATT_APP_SetCnoThresholdCmd_t *Msg)
 {
-    CFE_Status_t            Status;
-    void                   *TblAddr;
-    ATT_APP_ExampleTable_t *TblPtr;
-    const char             *TableName = "ATT_APP.ExampleTable";
+    uint8 NewThreshold = Msg->Payload.CnoThreshold;
+    uint8 OldThreshold = ATT_APP_Data.Gnss.HealthConfig.CnoThreshold;
 
-    /* Sample Use of Example Table */
+    if (NewThreshold < ATT_APP_PLATFORM_CNO_THRESHOLD_MIN || NewThreshold > ATT_APP_PLATFORM_CNO_THRESHOLD_MAX)
+    {
+        ATT_APP_Data.CommandErrorCounter++;
+
+        CFE_EVS_SendEvent(ATT_APP_CNO_THRESHOLD_ERR_EID,
+                          CFE_EVS_EventType_ERROR,
+                          "ATT_APP: C/N0 threshold %u dB-Hz rejected, valid range is %u to %u; threshold stays %u",
+                          (unsigned int)NewThreshold,
+                          (unsigned int)ATT_APP_PLATFORM_CNO_THRESHOLD_MIN,
+                          (unsigned int)ATT_APP_PLATFORM_CNO_THRESHOLD_MAX,
+                          (unsigned int)OldThreshold);
+
+        return CFE_STATUS_VALIDATION_FAILURE;
+    }
+
+    ATT_APP_Data.Gnss.HealthConfig.CnoThreshold = NewThreshold;
     ATT_APP_Data.CommandCounter++;
-    Status = CFE_TBL_GetAddress(&TblAddr, ATT_APP_Data.TblHandles[0]);
-    if (Status < CFE_SUCCESS)
-    {
-        CFE_ES_WriteToSysLog("Sample App: Fail to get table address: 0x%08lx", (unsigned long)Status);
-    }
-    else
-    {
-        TblPtr = TblAddr;
-        CFE_ES_WriteToSysLog("Sample App: Example Table Value 1: %d  Value 2: %d", TblPtr->Int1, TblPtr->Int2);
 
-        ATT_APP_GetCrc(TableName);
+    CFE_EVS_SendEvent(ATT_APP_CNO_THRESHOLD_INF_EID,
+                      CFE_EVS_EventType_INFORMATION,
+                      "ATT_APP: C/N0 threshold changed from %u to %u dB-Hz",
+                      (unsigned int)OldThreshold,
+                      (unsigned int)NewThreshold);
 
-        Status = CFE_TBL_ReleaseAddress(ATT_APP_Data.TblHandles[0]);
-        if (Status != CFE_SUCCESS)
-        {
-            CFE_ES_WriteToSysLog("Sample App: Fail to release table address: 0x%08lx", (unsigned long)Status);
-        }
-        else
-        {
-            /* Invoke a function provided by ATT_APP_LIB */
-            SAMPLE_LIB_Function();
-        }
-    }
-
-    return Status;
+    return CFE_SUCCESS;
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
-/* A simple example command that displays a passed-in value                   */
+/*  Purpose:                                                                  */
+/*         Close and reopen the GNSS input. For the recorded log this        */
+/*         restarts the replay from its first sentence; it is also the way   */
+/*         to recover after the input could not be opened or read.           */
 /*                                                                            */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
-CFE_Status_t ATT_APP_DisplayParamCmd(const ATT_APP_DisplayParamCmd_t *Msg)
+/* * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * *  * *  * * * * */
+CFE_Status_t ATT_APP_RestartLogCmd(const ATT_APP_RestartLogCmd_t *Msg)
 {
     ATT_APP_Data.CommandCounter++;
-    CFE_EVS_SendEvent(ATT_APP_VALUE_INF_EID,
+
+    CFE_EVS_SendEvent(ATT_APP_RESTART_LOG_INF_EID,
                       CFE_EVS_EventType_INFORMATION,
-                      "ATT_APP: ValU32=%lu, ValI16=%d, ValStr=%s",
-                      (unsigned long)Msg->Payload.ValU32,
-                      (int)Msg->Payload.ValI16,
-                      Msg->Payload.ValStr);
+                      "ATT_APP: RESTART_LOG command, reopening GNSS input and clearing health history");
+
+    ATT_APP_GNSS_Restart();
 
     return CFE_SUCCESS;
 }

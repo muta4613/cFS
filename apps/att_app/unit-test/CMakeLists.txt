@@ -27,7 +27,6 @@ add_cfe_coverage_stubs(att_app
   stubs/att_app_stubs.c
   stubs/att_app_cmds_stubs.c
   stubs/att_app_dispatch_stubs.c
-  stubs/att_app_utils_stubs.c
   stubs/att_app_nmea_stubs.c
   stubs/att_app_gnss_stubs.c
   stubs/att_app_health_stubs.c
@@ -63,10 +62,3 @@ foreach(SRCFILE ${APP_SRC_FILES})
     target_link_libraries(coverage-att_app-${UNIT_NAME}-testrunner coverage-att_app-stubs att_app_ut_common)
 
 endforeach()
-
-
-
-# The att_app uses library functions provided by sample_lib so must be linked
-# with the sample_lib stub library (this is mainly just an example of how this
-# can be done).
-add_cfe_coverage_dependency(att_app att_app_cmds sample_lib)

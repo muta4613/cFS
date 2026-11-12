@@ -35,11 +35,11 @@
  ************************************************************************/
 
 /*
-** Sample App command codes
+** ATT_APP command codes
 */
-#define ATT_APP_NOOP_CC           ATT_APP_CCVAL(NOOP)
-#define ATT_APP_RESET_COUNTERS_CC ATT_APP_CCVAL(RESET_COUNTERS)
-#define ATT_APP_PROCESS_CC        ATT_APP_CCVAL(PROCESS)
-#define ATT_APP_DISPLAY_PARAM_CC  ATT_APP_CCVAL(DISPLAY_PARAM)
+#define ATT_APP_NOOP_CC              ATT_APP_CCVAL(NOOP)
+#define ATT_APP_RESET_COUNTERS_CC    ATT_APP_CCVAL(RESET_COUNTERS)
+#define ATT_APP_SET_CNO_THRESHOLD_CC ATT_APP_CCVAL(SET_CNO_THRESHOLD)
+#define ATT_APP_RESTART_LOG_CC       ATT_APP_CCVAL(RESTART_LOG)
 
 #endif

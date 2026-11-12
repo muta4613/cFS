@@ -36,7 +36,6 @@
  * Includes
  */
 
-#include "sample_lib.h" /* For SAMPLE_LIB_Function */
 #include "att_app_coveragetest_common.h"
 #include "att_app.h"
 #include "att_app_dispatch.h"
@@ -96,11 +95,6 @@ void Test_ATT_APP_ReportHousekeeping(void)
     /* Confirm timestamp msg address */
     UtAssert_STUB_COUNT(CFE_SB_TimeStampMsg, 2);
     UtAssert_ADDRESS_EQ(MsgTimestamp, &ATT_APP_Data.HkTlm);
-
-    /*
-     * Confirm that the CFE_TBL_Manage() call was done
-     */
-    UtAssert_STUB_COUNT(CFE_TBL_Manage, 2);
 }
 
 void Test_ATT_APP_NoopCmd(void)
@@ -117,7 +111,9 @@ void Test_ATT_APP_NoopCmd(void)
     /* test dispatch of NOOP */
     UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_NOOP_INF_EID, NULL);
 
+    ATT_APP_Data.CommandCounter = 0;
     UtAssert_INT32_EQ(ATT_APP_NoopCmd(&TestMsg), CFE_SUCCESS);
+    UtAssert_UINT32_EQ(ATT_APP_Data.CommandCounter, 1);
 
     /*
      * Confirm that the event was generated
@@ -177,7 +173,7 @@ void Test_ATT_APP_ResetCountersCmd(void)
 
     memset(&TestMsg, 0, sizeof(TestMsg));
 
-    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_RESET_INF_EID, "SAMPLE: RESET command");
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_RESET_INF_EID, "ATT_APP: RESET_COUNTERS command");
 
     ATT_APP_Data.WakeupCounter = 7;
 
@@ -190,87 +186,78 @@ void Test_ATT_APP_ResetCountersCmd(void)
     UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
 }
 
-void Test_ATT_APP_ProcessCmd(void)
+void Test_ATT_APP_SetCnoThresholdCmd(void)
 {
     /*
      * Test Case For:
-     * void  ATT_APP_ProcessCmd( const ATT_APP_ProcessCmd_t *Msg )
+     * CFE_Status_t ATT_APP_SetCnoThresholdCmd( const ATT_APP_SetCnoThresholdCmd_t *Msg )
+     *
+     * Values inside the configured range are applied and counted as
+     * accepted; values outside it are counted as errors and change nothing.
      */
-    ATT_APP_ProcessCmd_t   TestMsg;
-    ATT_APP_ExampleTable_t TestTblData;
-    void                  *TblPtr = &TestTblData;
+    ATT_APP_SetCnoThresholdCmd_t TestMsg;
+    UT_CheckEvent_t              AcceptEvent;
+    UT_CheckEvent_t              RejectEvent;
 
-    memset(&TestTblData, 0, sizeof(TestTblData));
     memset(&TestMsg, 0, sizeof(TestMsg));
+    memset(&ATT_APP_Data, 0, sizeof(ATT_APP_Data));
+    ATT_APP_Data.Gnss.HealthConfig.CnoThreshold = ATT_APP_PLATFORM_CNO_THRESHOLD_DEFAULT;
 
-    /* Provide some table data for the ATT_APP_Process() function to use */
-    TestTblData.Int1 = 40;
-    TestTblData.Int2 = 50;
-    UT_SetDataBuffer(UT_KEY(CFE_TBL_GetAddress), &TblPtr, sizeof(TblPtr), false);
-    UtAssert_INT32_EQ(ATT_APP_ProcessCmd(&TestMsg), CFE_SUCCESS);
+    /* A typical value */
+    UT_CHECKEVENT_SETUP(&AcceptEvent, ATT_APP_CNO_THRESHOLD_INF_EID, NULL);
+    TestMsg.Payload.CnoThreshold = 35;
+    UtAssert_INT32_EQ(ATT_APP_SetCnoThresholdCmd(&TestMsg), CFE_SUCCESS);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.CnoThreshold, 35);
+    UtAssert_UINT32_EQ(ATT_APP_Data.CommandCounter, 1);
+    UtAssert_UINT32_EQ(ATT_APP_Data.CommandErrorCounter, 0);
+    UtAssert_UINT32_EQ(AcceptEvent.MatchCount, 1);
 
-    /*
-     * This only needs to account for the call to CFE_ES_WriteToSysLog() directly
-     * invoked by the unit under test.   Note that in this build environment, the
-     * ATT_APP_GetCrc() function is a stub.
-     */
-    UtAssert_STUB_COUNT(CFE_ES_WriteToSysLog, 1);
+    /* Both ends of the range are valid */
+    TestMsg.Payload.CnoThreshold = ATT_APP_PLATFORM_CNO_THRESHOLD_MIN;
+    UtAssert_INT32_EQ(ATT_APP_SetCnoThresholdCmd(&TestMsg), CFE_SUCCESS);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.CnoThreshold, ATT_APP_PLATFORM_CNO_THRESHOLD_MIN);
+    TestMsg.Payload.CnoThreshold = ATT_APP_PLATFORM_CNO_THRESHOLD_MAX;
+    UtAssert_INT32_EQ(ATT_APP_SetCnoThresholdCmd(&TestMsg), CFE_SUCCESS);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.CnoThreshold, ATT_APP_PLATFORM_CNO_THRESHOLD_MAX);
+    UtAssert_UINT32_EQ(ATT_APP_Data.CommandCounter, 3);
+    UtAssert_UINT32_EQ(AcceptEvent.MatchCount, 3);
 
-    /*
-     * Confirm that the CFE_TBL_GetAddress() call was done
-     */
-    UtAssert_STUB_COUNT(CFE_TBL_GetAddress, 1);
+    /* One below the minimum, one above the maximum, and the extremes of a uint8 */
+    UT_CHECKEVENT_SETUP(&RejectEvent, ATT_APP_CNO_THRESHOLD_ERR_EID, NULL);
+    TestMsg.Payload.CnoThreshold = ATT_APP_PLATFORM_CNO_THRESHOLD_MIN - 1;
+    UtAssert_INT32_EQ(ATT_APP_SetCnoThresholdCmd(&TestMsg), CFE_STATUS_VALIDATION_FAILURE);
+    TestMsg.Payload.CnoThreshold = ATT_APP_PLATFORM_CNO_THRESHOLD_MAX + 1;
+    UtAssert_INT32_EQ(ATT_APP_SetCnoThresholdCmd(&TestMsg), CFE_STATUS_VALIDATION_FAILURE);
+    TestMsg.Payload.CnoThreshold = 0;
+    UtAssert_INT32_EQ(ATT_APP_SetCnoThresholdCmd(&TestMsg), CFE_STATUS_VALIDATION_FAILURE);
+    TestMsg.Payload.CnoThreshold = 255;
+    UtAssert_INT32_EQ(ATT_APP_SetCnoThresholdCmd(&TestMsg), CFE_STATUS_VALIDATION_FAILURE);
 
-    /*
-     * Confirm that the SAMPLE_LIB_Function() call was done
-     * NOTE: This stub is provided by the sample_lib library
-     */
-    UtAssert_STUB_COUNT(SAMPLE_LIB_Function, 1);
-
-    /*
-     * Configure the CFE_TBL_GetAddress function to return an error.
-     * Exercise the error return path.
-     * Error at this point should add only one additional call to
-     * CFE_ES_WriteToSysLog() through the CFE_TBL_GetAddress() error path.
-     */
-    UT_SetDefaultReturnValue(UT_KEY(CFE_TBL_GetAddress), CFE_TBL_ERR_UNREGISTERED);
-    UtAssert_INT32_EQ(ATT_APP_ProcessCmd(&TestMsg), CFE_TBL_ERR_UNREGISTERED);
-    UtAssert_STUB_COUNT(CFE_ES_WriteToSysLog, 2);
-
-    /*
-     * Configure CFE_TBL_ReleaseAddress() to return an error, exercising the
-     * error return path.
-     * Confirm two additional calls to CFE_ES_WriteToSysLog() - one
-     * reporting the table values, and one through the CFE_TBL_ReleaseAddress()
-     * error path.
-     */
-    UT_SetDataBuffer(UT_KEY(CFE_TBL_GetAddress), &TblPtr, sizeof(TblPtr), false);
-    UT_SetDefaultReturnValue(UT_KEY(CFE_TBL_GetAddress), CFE_SUCCESS);
-    UT_SetDefaultReturnValue(UT_KEY(CFE_TBL_ReleaseAddress), CFE_TBL_ERR_NO_ACCESS);
-    UtAssert_INT32_EQ(ATT_APP_ProcessCmd(&TestMsg), CFE_TBL_ERR_NO_ACCESS);
-    UtAssert_STUB_COUNT(CFE_ES_WriteToSysLog, 4);
+    /* Rejected commands: counted as errors, one event each, threshold untouched */
+    UtAssert_UINT32_EQ(ATT_APP_Data.CommandErrorCounter, 4);
+    UtAssert_UINT32_EQ(ATT_APP_Data.CommandCounter, 3);
+    UtAssert_UINT32_EQ(RejectEvent.MatchCount, 4);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.CnoThreshold, ATT_APP_PLATFORM_CNO_THRESHOLD_MAX);
 }
 
-void Test_ATT_APP_DisplayParamCmd(void)
+void Test_ATT_APP_RestartLogCmd(void)
 {
     /*
      * Test Case For:
-     * void  ATT_APP_DisplayParamCmd( const ATT_APP_DisplayParamCmd_t *Msg )
+     * CFE_Status_t ATT_APP_RestartLogCmd( const ATT_APP_RestartLogCmd_t *Msg )
      */
-    ATT_APP_DisplayParamCmd_t TestMsg;
-    UT_CheckEvent_t           EventTest;
+    ATT_APP_RestartLogCmd_t TestMsg;
+    UT_CheckEvent_t         EventTest;
 
     memset(&TestMsg, 0, sizeof(TestMsg));
+    memset(&ATT_APP_Data, 0, sizeof(ATT_APP_Data));
 
-    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_VALUE_INF_EID, "ATT_APP: ValU32=%lu, ValI16=%d, ValStr=%s");
-    TestMsg.Payload.ValU32 = 10;
-    TestMsg.Payload.ValI16 = -4;
-    snprintf(TestMsg.Payload.ValStr, sizeof(TestMsg.Payload.ValStr), "Hello");
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_RESTART_LOG_INF_EID, NULL);
+    UtAssert_INT32_EQ(ATT_APP_RestartLogCmd(&TestMsg), CFE_SUCCESS);
 
-    UtAssert_INT32_EQ(ATT_APP_DisplayParamCmd(&TestMsg), CFE_SUCCESS);
-    /*
-     * Confirm that the event was generated
-     */
+    UtAssert_STUB_COUNT(ATT_APP_GNSS_Restart, 1);
+    UtAssert_UINT32_EQ(ATT_APP_Data.CommandCounter, 1);
+    UtAssert_UINT32_EQ(ATT_APP_Data.CommandErrorCounter, 0);
     UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
 }
 
@@ -283,6 +270,6 @@ void UtTest_Setup(void)
     ADD_TEST(ATT_APP_WakeupCmd);
     ADD_TEST(ATT_APP_NoopCmd);
     ADD_TEST(ATT_APP_ResetCountersCmd);
-    ADD_TEST(ATT_APP_ProcessCmd);
-    ADD_TEST(ATT_APP_DisplayParamCmd);
+    ADD_TEST(ATT_APP_SetCnoThresholdCmd);
+    ADD_TEST(ATT_APP_RestartLogCmd);
 }
