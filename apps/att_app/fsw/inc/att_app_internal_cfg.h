@@ -56,4 +56,85 @@
 #define ATT_APP_PLATFORM_TABLE_FILE         ATT_APP_PLATFORM_CFGVAL(TABLE_FILE)
 #define DEFAULT_ATT_APP_PLATFORM_TABLE_FILE "/cf/att_app_tbl.tbl"
 
+/***********************************************************************/
+/*
+** GNSS input
+*/
+
+/**
+ * \name Choices for #ATT_APP_PLATFORM_GNSS_INPUT_MODE
+ * \{
+ */
+#define ATT_APP_GNSS_INPUT_MODE_FILE   0 /**< \brief Replay a recorded NMEA log, wrapping at end of file */
+#define ATT_APP_GNSS_INPUT_MODE_DEVICE 1 /**< \brief Read a live receiver from a serial device */
+/** \} */
+
+/**
+ * \brief Where GNSS data comes from
+ *
+ * Both modes use the same OSAL read call and the same parser. They differ
+ * only in how the input is opened, in what "no more data" means (end of
+ * file wraps; an idle device just waits), and in how much is read per tick
+ * (one epoch from a file; everything that has arrived from a device).
+ */
+#define ATT_APP_PLATFORM_GNSS_INPUT_MODE         ATT_APP_PLATFORM_CFGVAL(GNSS_INPUT_MODE)
+#define DEFAULT_ATT_APP_PLATFORM_GNSS_INPUT_MODE ATT_APP_GNSS_INPUT_MODE_FILE
+
+/** \brief OSAL virtual path of the recorded log (file mode) */
+#define ATT_APP_PLATFORM_GNSS_LOG_FILE         ATT_APP_PLATFORM_CFGVAL(GNSS_LOG_FILE)
+#define DEFAULT_ATT_APP_PLATFORM_GNSS_LOG_FILE "/cf/gnss_sample.nmea"
+
+/**
+ * \brief Host directory that holds the receiver's device node (device mode)
+ *
+ * OSAL only opens paths under a known virtual mount point, so in device mode
+ * the app maps this host directory to #ATT_APP_PLATFORM_GNSS_DEVICE_MOUNT at
+ * startup and opens #ATT_APP_PLATFORM_GNSS_DEVICE_NAME inside it.
+ */
+#define ATT_APP_PLATFORM_GNSS_DEVICE_HOST_DIR         ATT_APP_PLATFORM_CFGVAL(GNSS_DEVICE_HOST_DIR)
+#define DEFAULT_ATT_APP_PLATFORM_GNSS_DEVICE_HOST_DIR "/dev"
+
+/** \brief OSAL virtual mount point the device directory is mapped to (device mode) */
+#define ATT_APP_PLATFORM_GNSS_DEVICE_MOUNT         ATT_APP_PLATFORM_CFGVAL(GNSS_DEVICE_MOUNT)
+#define DEFAULT_ATT_APP_PLATFORM_GNSS_DEVICE_MOUNT "/gnssdev"
+
+/** \brief Name of the device node inside the device directory (device mode) */
+#define ATT_APP_PLATFORM_GNSS_DEVICE_NAME         ATT_APP_PLATFORM_CFGVAL(GNSS_DEVICE_NAME)
+#define DEFAULT_ATT_APP_PLATFORM_GNSS_DEVICE_NAME "ttyUSB0"
+
+/**
+ * \brief Scheduler wakeups per GNSS epoch
+ *
+ * SCH_LAB sends the wakeup at 50 Hz; the receiver produces one epoch per
+ * second, so the input is serviced on every 50th wakeup.
+ */
+#define ATT_APP_PLATFORM_WAKEUPS_PER_EPOCH         ATT_APP_PLATFORM_CFGVAL(WAKEUPS_PER_EPOCH)
+#define DEFAULT_ATT_APP_PLATFORM_WAKEUPS_PER_EPOCH 50
+
+/**
+ * \brief Size of the buffer that input bytes are collected in
+ *
+ * Must hold at least two maximum-length sentences so a complete line can
+ * always be found; a line that fills the buffer without a newline is discarded.
+ */
+#define ATT_APP_PLATFORM_GNSS_READ_BUF_SIZE         ATT_APP_PLATFORM_CFGVAL(GNSS_READ_BUF_SIZE)
+#define DEFAULT_ATT_APP_PLATFORM_GNSS_READ_BUF_SIZE 256
+
+/**
+ * \brief How long one read may wait for data, in milliseconds
+ *
+ * 0 polls: the app never blocks on the receiver, because the same task
+ * also has to answer commands and housekeeping requests.
+ */
+#define ATT_APP_PLATFORM_GNSS_READ_TIMEOUT_MS         ATT_APP_PLATFORM_CFGVAL(GNSS_READ_TIMEOUT_MS)
+#define DEFAULT_ATT_APP_PLATFORM_GNSS_READ_TIMEOUT_MS 0
+
+/**
+ * \brief Most sentences processed in one tick
+ *
+ * Bounds the time spent in one tick if a device floods the input.
+ */
+#define ATT_APP_PLATFORM_GNSS_MAX_LINES_PER_TICK         ATT_APP_PLATFORM_CFGVAL(GNSS_MAX_LINES_PER_TICK)
+#define DEFAULT_ATT_APP_PLATFORM_GNSS_MAX_LINES_PER_TICK 64
+
 #endif

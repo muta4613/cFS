@@ -37,6 +37,7 @@
 #include "att_app_perfids.h"
 #include "att_app_msgids.h"
 #include "att_app_msg.h"
+#include "att_app_gnss.h"
 
 /************************************************************************
 ** Type Definitions
@@ -57,6 +58,18 @@ typedef struct
     ** Count of scheduler wakeups (proves the 50 Hz sampling tick arrives)
     */
     uint32 WakeupCounter;
+
+    /*
+    ** Wakeups since the GNSS input was last serviced; the input is
+    ** serviced every ATT_APP_PLATFORM_WAKEUPS_PER_EPOCH wakeups (1 Hz)
+    */
+    uint32 WakeupsSinceEpoch;
+
+    /*
+    ** GNSS input state and the navigation / signal-health packet built from it
+    */
+    ATT_APP_GNSS_Data_t Gnss;
+    ATT_APP_NavTlm_t    NavTlm;
 
     /*
     ** Housekeeping telemetry packet...

@@ -37,6 +37,17 @@
 */
 ATT_APP_Data_t ATT_APP_Data;
 
+/*
+** Event filters
+**
+** A receiver that sends garbage could produce a parse error for every
+** sentence. Every one is counted in telemetry, but only the first few
+** are sent as events so they cannot crowd everything else out of the log.
+*/
+static CFE_EVS_BinFilter_t ATT_APP_EventFilters[] = {
+    {ATT_APP_GNSS_PARSE_ERR_EID, CFE_EVS_FIRST_8_STOP},
+};
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  * *  * * * * **/
 /*                                                                            */
 /* Application entry point and main process loop                              */
@@ -121,7 +132,9 @@ CFE_Status_t ATT_APP_Init(void)
     /*
     ** Register the events
     */
-    status = CFE_EVS_Register(NULL, 0, CFE_EVS_EventFilter_BINARY);
+    status = CFE_EVS_Register(ATT_APP_EventFilters,
+                              sizeof(ATT_APP_EventFilters) / sizeof(ATT_APP_EventFilters[0]),
+                              CFE_EVS_EventFilter_BINARY);
     if (status != CFE_SUCCESS)
     {
         CFE_ES_WriteToSysLog("Sample App: Error Registering Events, RC = 0x%08lX\n", (unsigned long)status);
@@ -193,6 +206,15 @@ CFE_Status_t ATT_APP_Init(void)
                               "ATT App: Error Subscribing to Wakeup, RC = 0x%08lX",
                               (unsigned long)status);
         }
+    }
+
+    if (status == CFE_SUCCESS)
+    {
+        /*
+        ** Open the GNSS input and prepare the NAV packet. A missing
+        ** input is reported by event and does not stop the app.
+        */
+        status = ATT_APP_GNSS_Init();
     }
 
     if (status == CFE_SUCCESS)

@@ -26,6 +26,7 @@
 
 #include "common_types.h"
 #include "att_app_fcncodes.h"
+#include "att_app_interface_cfg.h"
 
 typedef struct ATT_APP_DisplayParam_Payload
 {
@@ -35,16 +36,74 @@ typedef struct ATT_APP_DisplayParam_Payload
 } ATT_APP_DisplayParam_Payload_t;
 
 /*************************************************************************/
-/*
-** Type definition (Sample App housekeeping)
-*/
 
+/**
+ * \name Bits of the HealthFlags field in the NAV telemetry packet
+ * \{
+ */
+#define ATT_APP_HEALTH_FLAG_NO_FIX         0x01 /**< \brief Receiver reports no position fix */
+#define ATT_APP_HEALTH_FLAG_LOW_CNO_SAT    0x02 /**< \brief At least one tracked satellite is below the C/N0 threshold */
+#define ATT_APP_HEALTH_FLAG_BROADBAND_DROP 0x04 /**< \brief C/N0 fell on most satellites at once (possible interference) */
+/** \} */
+
+/**
+ * \name Values of the InputState field in the housekeeping packet
+ * \{
+ */
+#define ATT_APP_INPUT_STATE_CLOSED 0 /**< \brief GNSS input could not be opened, or was closed after a read error */
+#define ATT_APP_INPUT_STATE_OPEN   1 /**< \brief GNSS input is open and being read */
+/** \} */
+
+/*
+** Type definition (ATT_APP housekeeping)
+**
+** 16 bytes, every field on its natural alignment, no implicit padding.
+*/
 typedef struct ATT_APP_HkTlm_Payload
 {
-    uint8  CommandCounter;
-    uint8  CommandErrorCounter;
-    uint8  Spare[2];      /**< Explicit padding so WakeupCounter is 4-byte aligned */
-    uint32 WakeupCounter; /**< Number of scheduler wakeups received */
+    uint8  CommandCounter;      /**< \brief Count of accepted ground commands */
+    uint8  CommandErrorCounter; /**< \brief Count of rejected ground commands */
+    uint8  CnoThreshold;        /**< \brief Current single-satellite low C/N0 threshold, dB-Hz */
+    uint8  InputState;          /**< \brief ATT_APP_INPUT_STATE_CLOSED or ATT_APP_INPUT_STATE_OPEN */
+    uint32 WakeupCounter;       /**< \brief Number of scheduler wakeups received */
+    uint32 EpochCounter;        /**< \brief Number of GNSS epochs processed and published */
+    uint32 ParseErrorCounter;   /**< \brief Number of NMEA sentences rejected by the parser */
 } ATT_APP_HkTlm_Payload_t;
+
+/**
+ * \brief One satellite in the NAV packet
+ */
+typedef struct ATT_APP_SatCno
+{
+    uint8 Prn; /**< \brief Satellite ID, 0 for an unused array entry */
+    uint8 Cno; /**< \brief Carrier-to-noise density in dB-Hz, 0 if in view but not tracked */
+} ATT_APP_SatCno_t;
+
+/*
+** Type definition (ATT_APP navigation and signal-health telemetry)
+**
+** Laid out largest alignment first: two doubles, then 32 bit fields, then
+** bytes. The fixed part is 40 bytes and the satellite array is 2 bytes per
+** entry, so the payload has no implicit padding as long as
+** ATT_APP_MISSION_MAX_SATS is a multiple of 4 (checked at compile time).
+*/
+typedef struct ATT_APP_NavTlm_Payload
+{
+    double Latitude;          /**< \brief Decimal degrees, north positive, 0 without a fix */
+    double Longitude;         /**< \brief Decimal degrees, east positive, 0 without a fix */
+    float  Altitude;          /**< \brief Metres above mean sea level, 0 without a fix */
+    float  MeanCno;           /**< \brief Mean C/N0 of the tracked satellites, dB-Hz */
+    uint32 EpochCounter;      /**< \brief Epochs processed, including this one */
+    uint32 ParseErrorCounter; /**< \brief NMEA sentences rejected by the parser */
+    uint8  UtcHour;           /**< \brief UTC time of the fix */
+    uint8  UtcMinute;
+    uint8  UtcSecond;
+    uint8  UtcCentisecond;
+    uint8  FixQuality;  /**< \brief GGA fix quality, 0 = no fix */
+    uint8  SatsUsed;    /**< \brief Satellites used in the position solution */
+    uint8  SatsInView;  /**< \brief Satellites in view as reported by the receiver */
+    uint8  HealthFlags; /**< \brief ATT_APP_HEALTH_FLAG_* bits */
+    ATT_APP_SatCno_t Sats[ATT_APP_MISSION_MAX_SATS]; /**< \brief First SatsInView entries are valid, up to the array size */
+} ATT_APP_NavTlm_Payload_t;
 
 #endif

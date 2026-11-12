@@ -90,4 +90,10 @@ typedef struct
     ATT_APP_HkTlm_Payload_t Payload;         /**< \brief Telemetry payload */
 } ATT_APP_HkTlm_t;
 
+typedef struct
+{
+    CFE_MSG_TelemetryHeader_t TelemetryHeader; /**< \brief Telemetry header */
+    ATT_APP_NavTlm_Payload_t  Payload;         /**< \brief Telemetry payload */
+} ATT_APP_NavTlm_t;
+
 #endif /* ATT_APP_MSGSTRUCT_H */

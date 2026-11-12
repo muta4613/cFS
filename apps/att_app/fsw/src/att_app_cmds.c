@@ -54,6 +54,10 @@ CFE_Status_t ATT_APP_SendHkCmd(const ATT_APP_SendHkCmd_t *Msg)
     ATT_APP_Data.HkTlm.Payload.CommandErrorCounter = ATT_APP_Data.CommandErrorCounter;
     ATT_APP_Data.HkTlm.Payload.CommandCounter      = ATT_APP_Data.CommandCounter;
     ATT_APP_Data.HkTlm.Payload.WakeupCounter       = ATT_APP_Data.WakeupCounter;
+    ATT_APP_Data.HkTlm.Payload.EpochCounter        = ATT_APP_Data.Gnss.EpochCounter;
+    ATT_APP_Data.HkTlm.Payload.ParseErrorCounter   = ATT_APP_Data.Gnss.ParseErrorCounter;
+    ATT_APP_Data.HkTlm.Payload.InputState =
+        ATT_APP_Data.Gnss.IsOpen ? ATT_APP_INPUT_STATE_OPEN : ATT_APP_INPUT_STATE_CLOSED;
 
     /*
     ** Send housekeeping telemetry packet...
@@ -75,14 +79,21 @@ CFE_Status_t ATT_APP_SendHkCmd(const ATT_APP_SendHkCmd_t *Msg)
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
 /*  Purpose:                                                                  */
-/*         Called on every scheduler wakeup (50 Hz). This is where sensor     */
-/*         sampling, filtering, and fault checks will run. For now it only    */
-/*         counts wakeups so the rate can be verified in telemetry.           */
+/*         Called on every scheduler wakeup (50 Hz). Counts the wakeup so    */
+/*         the rate can be verified in telemetry, and services the GNSS      */
+/*         input on every Nth wakeup, which gives the 1 Hz epoch rate.       */
 /*                                                                            */
 /* * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * *  * *  * * * * */
 CFE_Status_t ATT_APP_WakeupCmd(const ATT_APP_WakeupCmd_t *Msg)
 {
     ATT_APP_Data.WakeupCounter++;
+    ATT_APP_Data.WakeupsSinceEpoch++;
+
+    if (ATT_APP_Data.WakeupsSinceEpoch >= ATT_APP_PLATFORM_WAKEUPS_PER_EPOCH)
+    {
+        ATT_APP_Data.WakeupsSinceEpoch = 0;
+        ATT_APP_GNSS_Tick();
+    }
 
     return CFE_SUCCESS;
 }
@@ -116,6 +127,9 @@ CFE_Status_t ATT_APP_ResetCountersCmd(const ATT_APP_ResetCountersCmd_t *Msg)
     ATT_APP_Data.CommandCounter      = 0;
     ATT_APP_Data.CommandErrorCounter = 0;
     ATT_APP_Data.WakeupCounter       = 0;
+
+    ATT_APP_Data.Gnss.EpochCounter      = 0;
+    ATT_APP_Data.Gnss.ParseErrorCounter = 0;
 
     CFE_EVS_SendEvent(ATT_APP_RESET_INF_EID, CFE_EVS_EventType_INFORMATION, "SAMPLE: RESET command");
 

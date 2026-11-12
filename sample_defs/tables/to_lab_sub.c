@@ -77,6 +77,7 @@ TO_LAB_Subs_t TO_LAB_Subs =
         /* Other CFS apps */
         {CFE_SB_MSGID_WRAP_VALUE(SAMPLE_APP_HK_TLM_MID), {0, 0}, 1},
         {CFE_SB_MSGID_WRAP_VALUE(ATT_APP_HK_TLM_MID), {0, 0}, 1},
+        {CFE_SB_MSGID_WRAP_VALUE(ATT_APP_NAV_TLM_MID), {0, 0}, 4},
         {CFE_SB_MSGID_WRAP_VALUE(CF_HK_TLM_MID),         {0, 0}, 1},
         {CFE_SB_MSGID_WRAP_VALUE(CF_EOT_TLM_MID),        {0, 0}, 1},
         {CFE_SB_MSGID_WRAP_VALUE(CF_CH0_TX_MID),        {0, 0}, 5},

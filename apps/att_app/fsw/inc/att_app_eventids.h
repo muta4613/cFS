@@ -40,4 +40,13 @@
 #define ATT_APP_TABLE_REG_ERR_EID 12
 #define ATT_APP_SUB_WAKEUP_ERR_EID 13
 
+
+/* GNSS input */
+#define ATT_APP_GNSS_OPEN_INF_EID   14 /**< \brief GNSS input opened */
+#define ATT_APP_GNSS_OPEN_ERR_EID   15 /**< \brief GNSS input could not be opened; app keeps running */
+#define ATT_APP_GNSS_READ_ERR_EID   16 /**< \brief Read failed; input closed until RESTART_LOG */
+#define ATT_APP_GNSS_WRAP_INF_EID   17 /**< \brief End of the recorded log reached, replay restarted */
+#define ATT_APP_GNSS_PARSE_ERR_EID  18 /**< \brief Sentence rejected by the parser (filtered: first few only) */
+#define ATT_APP_GNSS_DEVMAP_ERR_EID 19 /**< \brief Device directory could not be mapped into OSAL */
+
 #endif /* ATT_APP_EVENTS_H */
