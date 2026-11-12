@@ -1,0 +1,96 @@
+# ATT_APP - GNSS signal-health monitor for NASA cFS
+# Licensed under the Apache License, Version 2.0
+#
+# Build cFS, run every ATT_APP check, then run the app for real and verify the
+# telemetry it produces against the COSMOS definitions.
+name: ATT_APP build and test
+
+on:
+  push:
+    branches: [dev, feature/gnss]
+    paths:
+      - "apps/att_app/**"
+      - "sample_defs/**"
+      - "tools/att_app_cosmos/**"
+      - ".github/workflows/att-app.yml"
+  pull_request:
+    paths:
+      - "apps/att_app/**"
+      - "sample_defs/**"
+      - "tools/att_app_cosmos/**"
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  att-app:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Raise the POSIX message queue limit
+        # cFE creates queues deeper than the Linux default of 10
+        run: echo 1000 | sudo tee /proc/sys/fs/mqueue/msg_max
+
+      - name: Topic IDs are unique in the mission
+        run: python3 apps/att_app/unit-test/check_topic_ids.py
+
+      - name: Build (native_std)
+        run: |
+          make native_std.prep
+          make native_std.install 2>&1 | tee build.log
+          if grep -E "apps/att_app/.*warning:" build.log; then
+            echo "::error::new compiler warnings in ATT_APP"; exit 1
+          fi
+
+      - name: ATT_APP unit tests
+        working-directory: build-native_std/exe/cpu1
+        run: |
+          status=0
+          for t in coverage-att_app-*-testrunner; do
+            out=$(./"$t" 2>&1) || status=1
+            summary=$(grep "SUMMARY" <<<"$out" | tail -1)
+            echo "$t: $summary"
+            grep -q "FAIL::0 " <<<"$summary" || { echo "$out" | grep -E "FAIL|ABORT" | head -20; status=1; }
+          done
+          exit $status
+
+      - name: Parser under ASan/UBSan with corrupted input
+        run: make -C apps/att_app/unit-test/standalone check
+
+      - name: COSMOS definitions match the C structs
+        run: python3 tools/att_app_cosmos/test/check_layout.py --build-dir build-native_std
+
+      - name: Live run (40 s) and decode the telemetry with the COSMOS definitions
+        run: |
+          (cd build-native_std/exe/cpu1 && ./core-cpu1 > ../../../cfs.log 2>&1 &)
+          sleep 5
+          timeout 50 python3 apps/att_app/ground/gnss_monitor.py --enable-tlm --duration 40 --capture capture.bin | tee monitor.log &
+          sleep 10
+          python3 apps/att_app/ground/gnss_monitor.py --send-cmd noop
+          python3 apps/att_app/ground/gnss_monitor.py --send-cmd set-cno-threshold 200
+          wait
+          pkill -f core-cpu1 || true
+          nav=$(grep -c "^NAV" monitor.log || true)
+          echo "NAV packets: $nav"
+          [ "$nav" -ge 30 ] || { echo "::error::expected at least 30 NAV packets in 40 s"; cat cfs.log | tail -40; exit 1; }
+          grep -q "cmd=1 " monitor.log || { echo "::error::NOOP did not bump CommandCounter"; exit 1; }
+          grep -q "err=1 " monitor.log || { echo "::error::out-of-range threshold did not bump CommandErrorCounter"; exit 1; }
+          python3 tools/att_app_cosmos/test/check_layout.py --build-dir build-native_std --capture capture.bin
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: att-app-run
+          path: |
+            build.log
+            cfs.log
+            monitor.log
+            capture.bin
+          if-no-files-found: ignore
