@@ -35,6 +35,9 @@
 /* Full OSAL path of the receiver's device node in device mode */
 #define ATT_APP_GNSS_DEVICE_PATH ATT_APP_PLATFORM_GNSS_DEVICE_MOUNT "/" ATT_APP_PLATFORM_GNSS_DEVICE_NAME
 
+/* Events report dB values as whole and tenths, because not every target's printf supports %f */
+#define ATT_APP_GNSS_TENTHS_PER_DB 10
+
 /* The buffer must always be able to hold a complete sentence plus the start of the next */
 CompileTimeAssert(ATT_APP_PLATFORM_GNSS_READ_BUF_SIZE >= 2 * (ATT_APP_NMEA_MAX_SENTENCE_LEN + 2),
                   ATT_APP_GnssReadBufTooSmall);
@@ -130,38 +133,113 @@ static void ATT_APP_GNSS_Close(void)
 }
 
 /*----------------------------------------------------------------
- * Fill in and send the NAV packet for one finished epoch
+ * Send the event for each health flag that changed in this epoch.
+ * Flags that are merely still set (or still clear) send nothing.
+ *-----------------------------------------------------------------*/
+static void ATT_APP_GNSS_ReportHealthChanges(const ATT_APP_NMEA_Epoch_t *Epoch, const ATT_APP_HEALTH_Result_t *Result)
+{
+    /* Round to tenths of a dB for display; a mean above its baseline is shown as a deficit of 0 */
+    float  Deficit       = (Result->MeanBaseline > Result->MeanCno) ? (Result->MeanBaseline - Result->MeanCno) : 0.0f;
+    uint32 MeanTenths    = (uint32)(Result->MeanCno * ATT_APP_GNSS_TENTHS_PER_DB + 0.5f);
+    uint32 DeficitTenths = (uint32)(Deficit * ATT_APP_GNSS_TENTHS_PER_DB + 0.5f);
+
+    if (Result->Raised & ATT_APP_HEALTH_FLAG_NO_FIX)
+    {
+        CFE_EVS_SendEvent(ATT_APP_FIX_LOST_ERR_EID,
+                          CFE_EVS_EventType_ERROR,
+                          "ATT_APP: GNSS fix lost at %02u:%02u:%02u UTC, %u satellites tracked",
+                          (unsigned int)Epoch->Gga.UtcHour,
+                          (unsigned int)Epoch->Gga.UtcMinute,
+                          (unsigned int)Epoch->Gga.UtcSecond,
+                          (unsigned int)Result->TrackedSats);
+    }
+
+    if (Result->Cleared & ATT_APP_HEALTH_FLAG_NO_FIX)
+    {
+        CFE_EVS_SendEvent(ATT_APP_FIX_REGAINED_INF_EID,
+                          CFE_EVS_EventType_INFORMATION,
+                          "ATT_APP: GNSS fix regained at %02u:%02u:%02u UTC, %u satellites tracked",
+                          (unsigned int)Epoch->Gga.UtcHour,
+                          (unsigned int)Epoch->Gga.UtcMinute,
+                          (unsigned int)Epoch->Gga.UtcSecond,
+                          (unsigned int)Result->TrackedSats);
+    }
+
+    if (Result->Raised & ATT_APP_HEALTH_FLAG_LOW_CNO_SAT)
+    {
+        CFE_EVS_SendEvent(ATT_APP_LOW_CNO_INF_EID,
+                          CFE_EVS_EventType_INFORMATION,
+                          "ATT_APP: low C/N0 on PRN %u: %u dB-Hz, threshold %u",
+                          (unsigned int)Result->WeakestPrn,
+                          (unsigned int)Result->WeakestCno,
+                          (unsigned int)ATT_APP_Data.Gnss.HealthConfig.CnoThreshold);
+    }
+
+    if (Result->Cleared & ATT_APP_HEALTH_FLAG_LOW_CNO_SAT)
+    {
+        CFE_EVS_SendEvent(ATT_APP_LOW_CNO_CLEAR_INF_EID,
+                          CFE_EVS_EventType_INFORMATION,
+                          "ATT_APP: low C/N0 cleared, weakest tracked satellite now %u dB-Hz",
+                          (unsigned int)Result->WeakestCno);
+    }
+
+    if (Result->Raised & ATT_APP_HEALTH_FLAG_BROADBAND_DROP)
+    {
+        CFE_EVS_SendEvent(ATT_APP_INTERFERENCE_ERR_EID,
+                          CFE_EVS_EventType_ERROR,
+                          "ATT_APP: possible interference: mean C/N0 %lu.%lu dB-Hz is %lu.%lu dB below baseline, "
+                          "%u of %u satellites dropped",
+                          (unsigned long)(MeanTenths / ATT_APP_GNSS_TENTHS_PER_DB),
+                          (unsigned long)(MeanTenths % ATT_APP_GNSS_TENTHS_PER_DB),
+                          (unsigned long)(DeficitTenths / ATT_APP_GNSS_TENTHS_PER_DB),
+                          (unsigned long)(DeficitTenths % ATT_APP_GNSS_TENTHS_PER_DB),
+                          (unsigned int)Result->DroppedSats,
+                          (unsigned int)Result->BaselinedSats);
+    }
+
+    if (Result->Cleared & ATT_APP_HEALTH_FLAG_BROADBAND_DROP)
+    {
+        CFE_EVS_SendEvent(ATT_APP_INTERFERENCE_CLEAR_INF_EID,
+                          CFE_EVS_EventType_INFORMATION,
+                          "ATT_APP: interference cleared: mean C/N0 back to %lu.%lu dB-Hz",
+                          (unsigned long)(MeanTenths / ATT_APP_GNSS_TENTHS_PER_DB),
+                          (unsigned long)(MeanTenths % ATT_APP_GNSS_TENTHS_PER_DB));
+    }
+}
+
+/*----------------------------------------------------------------
+ * Assess one finished epoch, report what changed, then fill in and
+ * send its NAV packet
  *-----------------------------------------------------------------*/
 static void ATT_APP_GNSS_PublishEpoch(const ATT_APP_NMEA_Epoch_t *Epoch)
 {
     ATT_APP_GNSS_Data_t      *Gnss = &ATT_APP_Data.Gnss;
     ATT_APP_NavTlm_Payload_t *Nav  = &ATT_APP_Data.NavTlm.Payload;
-    uint32                    CnoSum;
-    uint8                     NumTracked;
+    ATT_APP_HEALTH_Result_t   Health;
     uint8                     i;
 
     ++Gnss->EpochCounter;
 
-    CnoSum     = 0;
-    NumTracked = 0;
+    memset(&Health, 0, sizeof(Health));
+    ATT_APP_HEALTH_Update(&Gnss->HealthState, &Gnss->HealthConfig, Epoch, &Health);
+
+    if (Health.Raised != 0 || Health.Cleared != 0)
+    {
+        ATT_APP_GNSS_ReportHealthChanges(Epoch, &Health);
+    }
+
     memset(Nav->Sats, 0, sizeof(Nav->Sats));
 
-    for (i = 0; i < Epoch->NumSats; ++i)
+    for (i = 0; i < Epoch->NumSats && i < ATT_APP_MISSION_MAX_SATS; ++i)
     {
         Nav->Sats[i].Prn = Epoch->Sats[i].Prn;
         Nav->Sats[i].Cno = Epoch->Sats[i].Cno;
-
-        if (Epoch->Sats[i].Cno != ATT_APP_NMEA_CNO_NOT_TRACKED)
-        {
-            CnoSum += Epoch->Sats[i].Cno;
-            ++NumTracked;
-        }
     }
 
     Nav->Latitude          = Epoch->Gga.Latitude;
     Nav->Longitude         = Epoch->Gga.Longitude;
     Nav->Altitude          = Epoch->Gga.Altitude;
-    Nav->MeanCno           = (NumTracked > 0) ? ((float)CnoSum / (float)NumTracked) : 0.0f;
+    Nav->MeanCno           = Health.MeanCno;
     Nav->EpochCounter      = Gnss->EpochCounter;
     Nav->ParseErrorCounter = Gnss->ParseErrorCounter;
     Nav->UtcHour           = Epoch->Gga.UtcHour;
@@ -171,7 +249,7 @@ static void ATT_APP_GNSS_PublishEpoch(const ATT_APP_NMEA_Epoch_t *Epoch)
     Nav->FixQuality        = Epoch->Gga.FixQuality;
     Nav->SatsUsed          = Epoch->Gga.SatsUsed;
     Nav->SatsInView        = Epoch->SatsInView;
-    Nav->HealthFlags       = 0;
+    Nav->HealthFlags       = Health.Flags;
 
     CFE_SB_TimeStampMsg(CFE_MSG_PTR(ATT_APP_Data.NavTlm.TelemetryHeader));
     CFE_SB_TransmitMsg(CFE_MSG_PTR(ATT_APP_Data.NavTlm.TelemetryHeader), true);
@@ -339,6 +417,31 @@ static void ATT_APP_GNSS_WrapLog(void)
     }
 }
 
+/*----------------------------------------------------------------
+ * Load the health check tuning from the platform configuration
+ *-----------------------------------------------------------------*/
+static void ATT_APP_GNSS_LoadHealthConfig(void)
+{
+    ATT_APP_HEALTH_Config_t *Config = &ATT_APP_Data.Gnss.HealthConfig;
+
+    Config->CnoThreshold       = ATT_APP_PLATFORM_CNO_THRESHOLD_DEFAULT;
+    Config->LowCnoHysteresisDb = ATT_APP_PLATFORM_LOW_CNO_HYSTERESIS_DB;
+    Config->LowCnoSetCount     = ATT_APP_PLATFORM_LOW_CNO_SET_COUNT;
+    Config->LowCnoClearCount   = ATT_APP_PLATFORM_LOW_CNO_CLEAR_COUNT;
+    Config->NoFixSetCount      = ATT_APP_PLATFORM_NO_FIX_SET_COUNT;
+    Config->NoFixClearCount    = ATT_APP_PLATFORM_NO_FIX_CLEAR_COUNT;
+    Config->DropSetCount       = ATT_APP_PLATFORM_DROP_SET_COUNT;
+    Config->DropClearCount     = ATT_APP_PLATFORM_DROP_CLEAR_COUNT;
+    Config->DropSatPercent     = ATT_APP_PLATFORM_DROP_SAT_PERCENT;
+    Config->DropMinSats        = ATT_APP_PLATFORM_DROP_MIN_SATS;
+    Config->DropMeanDb         = ATT_APP_PLATFORM_DROP_MEAN_DB;
+    Config->DropClearDb        = ATT_APP_PLATFORM_DROP_CLEAR_DB;
+    Config->DropSatDb          = ATT_APP_PLATFORM_DROP_SAT_DB;
+    Config->BaselineWindow     = ATT_APP_PLATFORM_BASELINE_WINDOW;
+    Config->BaselineMinSamples = ATT_APP_PLATFORM_BASELINE_MIN_SAMPLES;
+    Config->SatExpireEpochs    = ATT_APP_PLATFORM_SAT_EXPIRE_EPOCHS;
+}
+
 /************************************************************************
  * Public Functions
  ************************************************************************/
@@ -363,6 +466,8 @@ CFE_Status_t ATT_APP_GNSS_Init(uint8 InputMode)
                  sizeof(ATT_APP_Data.NavTlm));
 
     ATT_APP_GNSS_ResetStream();
+    ATT_APP_GNSS_LoadHealthConfig();
+    ATT_APP_HEALTH_Init(&ATT_APP_Data.Gnss.HealthState);
 
     if (ATT_APP_GNSS_IsDeviceMode())
     {
@@ -396,6 +501,7 @@ void ATT_APP_GNSS_Restart(void)
 {
     ATT_APP_GNSS_Close();
     ATT_APP_GNSS_ResetStream();
+    ATT_APP_HEALTH_Init(&ATT_APP_Data.Gnss.HealthState);
     ATT_APP_GNSS_Open();
 }
 

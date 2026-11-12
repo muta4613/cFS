@@ -4,6 +4,7 @@ set(APP_SRC_FILES
   fsw/src/att_app.c
   fsw/src/att_app_cmds.c
   fsw/src/att_app_gnss.c
+  fsw/src/att_app_health.c
   fsw/src/att_app_nmea.c
   fsw/src/att_app_utils.c
 )

@@ -56,6 +56,7 @@ CFE_Status_t ATT_APP_SendHkCmd(const ATT_APP_SendHkCmd_t *Msg)
     ATT_APP_Data.HkTlm.Payload.WakeupCounter       = ATT_APP_Data.WakeupCounter;
     ATT_APP_Data.HkTlm.Payload.EpochCounter        = ATT_APP_Data.Gnss.EpochCounter;
     ATT_APP_Data.HkTlm.Payload.ParseErrorCounter   = ATT_APP_Data.Gnss.ParseErrorCounter;
+    ATT_APP_Data.HkTlm.Payload.CnoThreshold        = ATT_APP_Data.Gnss.HealthConfig.CnoThreshold;
     ATT_APP_Data.HkTlm.Payload.InputState =
         ATT_APP_Data.Gnss.IsOpen ? ATT_APP_INPUT_STATE_OPEN : ATT_APP_INPUT_STATE_CLOSED;
 

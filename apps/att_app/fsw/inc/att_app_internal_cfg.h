@@ -137,4 +137,81 @@
 #define ATT_APP_PLATFORM_GNSS_MAX_LINES_PER_TICK         ATT_APP_PLATFORM_CFGVAL(GNSS_MAX_LINES_PER_TICK)
 #define DEFAULT_ATT_APP_PLATFORM_GNSS_MAX_LINES_PER_TICK 64
 
+/***********************************************************************/
+/*
+** Signal-health checks
+*/
+
+/** \brief Power-on value of the single-satellite low C/N0 threshold, dB-Hz (SET_CNO_THRESHOLD changes it) */
+#define ATT_APP_PLATFORM_CNO_THRESHOLD_DEFAULT         ATT_APP_PLATFORM_CFGVAL(CNO_THRESHOLD_DEFAULT)
+#define DEFAULT_ATT_APP_PLATFORM_CNO_THRESHOLD_DEFAULT 30
+
+/** \brief Lowest threshold SET_CNO_THRESHOLD accepts, dB-Hz (below this a receiver cannot track at all) */
+#define ATT_APP_PLATFORM_CNO_THRESHOLD_MIN         ATT_APP_PLATFORM_CFGVAL(CNO_THRESHOLD_MIN)
+#define DEFAULT_ATT_APP_PLATFORM_CNO_THRESHOLD_MIN 10
+
+/** \brief Highest threshold SET_CNO_THRESHOLD accepts, dB-Hz (above this every healthy satellite would be "weak") */
+#define ATT_APP_PLATFORM_CNO_THRESHOLD_MAX         ATT_APP_PLATFORM_CFGVAL(CNO_THRESHOLD_MAX)
+#define DEFAULT_ATT_APP_PLATFORM_CNO_THRESHOLD_MAX 55
+
+/** \brief LOW_CNO_SAT clears only when every tracked satellite is at least this far above the threshold, dB */
+#define ATT_APP_PLATFORM_LOW_CNO_HYSTERESIS_DB         ATT_APP_PLATFORM_CFGVAL(LOW_CNO_HYSTERESIS_DB)
+#define DEFAULT_ATT_APP_PLATFORM_LOW_CNO_HYSTERESIS_DB 2
+
+/** \brief Consecutive epochs with a weak satellite before LOW_CNO_SAT sets */
+#define ATT_APP_PLATFORM_LOW_CNO_SET_COUNT         ATT_APP_PLATFORM_CFGVAL(LOW_CNO_SET_COUNT)
+#define DEFAULT_ATT_APP_PLATFORM_LOW_CNO_SET_COUNT 1
+
+/** \brief Consecutive epochs without a weak satellite before LOW_CNO_SAT clears */
+#define ATT_APP_PLATFORM_LOW_CNO_CLEAR_COUNT         ATT_APP_PLATFORM_CFGVAL(LOW_CNO_CLEAR_COUNT)
+#define DEFAULT_ATT_APP_PLATFORM_LOW_CNO_CLEAR_COUNT 1
+
+/** \brief Consecutive epochs without a fix before NO_FIX sets */
+#define ATT_APP_PLATFORM_NO_FIX_SET_COUNT         ATT_APP_PLATFORM_CFGVAL(NO_FIX_SET_COUNT)
+#define DEFAULT_ATT_APP_PLATFORM_NO_FIX_SET_COUNT 1
+
+/** \brief Consecutive epochs with a fix before NO_FIX clears */
+#define ATT_APP_PLATFORM_NO_FIX_CLEAR_COUNT         ATT_APP_PLATFORM_CFGVAL(NO_FIX_CLEAR_COUNT)
+#define DEFAULT_ATT_APP_PLATFORM_NO_FIX_CLEAR_COUNT 2
+
+/** \brief BROADBAND_DROP: mean C/N0 must be at least this far below its running average, dB */
+#define ATT_APP_PLATFORM_DROP_MEAN_DB         ATT_APP_PLATFORM_CFGVAL(DROP_MEAN_DB)
+#define DEFAULT_ATT_APP_PLATFORM_DROP_MEAN_DB 8.0f
+
+/** \brief BROADBAND_DROP clears when the mean is back within this of its running average, dB */
+#define ATT_APP_PLATFORM_DROP_CLEAR_DB         ATT_APP_PLATFORM_CFGVAL(DROP_CLEAR_DB)
+#define DEFAULT_ATT_APP_PLATFORM_DROP_CLEAR_DB 4.0f
+
+/** \brief A satellite at least this far below its own running average counts as dropped, dB */
+#define ATT_APP_PLATFORM_DROP_SAT_DB         ATT_APP_PLATFORM_CFGVAL(DROP_SAT_DB)
+#define DEFAULT_ATT_APP_PLATFORM_DROP_SAT_DB 6.0f
+
+/** \brief BROADBAND_DROP: at least this share of the baselined satellites must have dropped together, percent */
+#define ATT_APP_PLATFORM_DROP_SAT_PERCENT         ATT_APP_PLATFORM_CFGVAL(DROP_SAT_PERCENT)
+#define DEFAULT_ATT_APP_PLATFORM_DROP_SAT_PERCENT 75
+
+/** \brief BROADBAND_DROP is not evaluated with fewer baselined satellites than this */
+#define ATT_APP_PLATFORM_DROP_MIN_SATS         ATT_APP_PLATFORM_CFGVAL(DROP_MIN_SATS)
+#define DEFAULT_ATT_APP_PLATFORM_DROP_MIN_SATS 4
+
+/** \brief Consecutive epochs the drop condition must hold before BROADBAND_DROP sets */
+#define ATT_APP_PLATFORM_DROP_SET_COUNT         ATT_APP_PLATFORM_CFGVAL(DROP_SET_COUNT)
+#define DEFAULT_ATT_APP_PLATFORM_DROP_SET_COUNT 2
+
+/** \brief Consecutive epochs of recovery before BROADBAND_DROP clears */
+#define ATT_APP_PLATFORM_DROP_CLEAR_COUNT         ATT_APP_PLATFORM_CFGVAL(DROP_CLEAR_COUNT)
+#define DEFAULT_ATT_APP_PLATFORM_DROP_CLEAR_COUNT 3
+
+/** \brief Length of the C/N0 running averages, epochs */
+#define ATT_APP_PLATFORM_BASELINE_WINDOW         ATT_APP_PLATFORM_CFGVAL(BASELINE_WINDOW)
+#define DEFAULT_ATT_APP_PLATFORM_BASELINE_WINDOW 30
+
+/** \brief Epochs a running average must have seen before it is used for BROADBAND_DROP */
+#define ATT_APP_PLATFORM_BASELINE_MIN_SAMPLES         ATT_APP_PLATFORM_CFGVAL(BASELINE_MIN_SAMPLES)
+#define DEFAULT_ATT_APP_PLATFORM_BASELINE_MIN_SAMPLES 10
+
+/** \brief A satellite not tracked for more than this many epochs loses its running average */
+#define ATT_APP_PLATFORM_SAT_EXPIRE_EPOCHS         ATT_APP_PLATFORM_CFGVAL(SAT_EXPIRE_EPOCHS)
+#define DEFAULT_ATT_APP_PLATFORM_SAT_EXPIRE_EPOCHS 30
+
 #endif

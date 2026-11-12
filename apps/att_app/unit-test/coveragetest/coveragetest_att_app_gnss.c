@@ -74,9 +74,19 @@ typedef struct
     ATT_APP_NMEA_Epoch_t Epoch;
 } UT_GNSS_FlushScript_t;
 
-static UT_GNSS_ReadScript_t  UT_GNSS_Read;
-static UT_GNSS_FeedScript_t  UT_GNSS_Feed;
-static UT_GNSS_FlushScript_t UT_GNSS_Flush;
+/* What ATT_APP_HEALTH_Update should report, and what it was called with */
+typedef struct
+{
+    ATT_APP_HEALTH_Result_t        Result;
+    uint32                         CallCount;
+    const ATT_APP_HEALTH_State_t  *State;
+    const ATT_APP_HEALTH_Config_t *Config;
+} UT_GNSS_HealthScript_t;
+
+static UT_GNSS_HealthScript_t UT_GNSS_Health;
+static UT_GNSS_ReadScript_t   UT_GNSS_Read;
+static UT_GNSS_FeedScript_t   UT_GNSS_Feed;
+static UT_GNSS_FlushScript_t  UT_GNSS_Flush;
 
 static void UT_GNSS_ReadHandler(void *UserObj, UT_EntryKey_t FuncKey, const UT_StubContext_t *Context)
 {
@@ -154,6 +164,18 @@ static void UT_GNSS_FlushHandler(void *UserObj, UT_EntryKey_t FuncKey, const UT_
     UT_Stub_SetReturnValue(FuncKey, Result);
 }
 
+static void UT_GNSS_HealthHandler(void *UserObj, UT_EntryKey_t FuncKey, const UT_StubContext_t *Context)
+{
+    UT_GNSS_HealthScript_t  *Script = UserObj;
+    ATT_APP_HEALTH_Result_t *Result = UT_Hook_GetArgValueByName(Context, "Result", ATT_APP_HEALTH_Result_t *);
+
+    Script->State  = UT_Hook_GetArgValueByName(Context, "State", const ATT_APP_HEALTH_State_t *);
+    Script->Config = UT_Hook_GetArgValueByName(Context, "Config", const ATT_APP_HEALTH_Config_t *);
+    ++Script->CallCount;
+
+    *Result = Script->Result;
+}
+
 /* An epoch with a fix, three tracked satellites and one untracked */
 static void UT_GNSS_MakeEpoch(ATT_APP_NMEA_Epoch_t *Epoch)
 {
@@ -189,7 +211,10 @@ static void UT_GNSS_Start(uint8 InputMode)
     memset(&UT_GNSS_Read, 0, sizeof(UT_GNSS_Read));
     memset(&UT_GNSS_Feed, 0, sizeof(UT_GNSS_Feed));
     memset(&UT_GNSS_Flush, 0, sizeof(UT_GNSS_Flush));
+    memset(&UT_GNSS_Health, 0, sizeof(UT_GNSS_Health));
     memset(&ATT_APP_Data, 0, sizeof(ATT_APP_Data));
+
+    UT_GNSS_Health.Result.MeanCno = 41.0f;
 
     UT_GNSS_MakeEpoch(&UT_GNSS_Feed.Epoch);
     UT_GNSS_MakeEpoch(&UT_GNSS_Flush.Epoch);
@@ -197,6 +222,7 @@ static void UT_GNSS_Start(uint8 InputMode)
     UT_SetHandlerFunction(UT_KEY(OS_TimedRead), UT_GNSS_ReadHandler, &UT_GNSS_Read);
     UT_SetHandlerFunction(UT_KEY(ATT_APP_NMEA_AssemblerFeed), UT_GNSS_FeedHandler, &UT_GNSS_Feed);
     UT_SetHandlerFunction(UT_KEY(ATT_APP_NMEA_AssemblerFlush), UT_GNSS_FlushHandler, &UT_GNSS_Flush);
+    UT_SetHandlerFunction(UT_KEY(ATT_APP_HEALTH_Update), UT_GNSS_HealthHandler, &UT_GNSS_Health);
 
     UtAssert_INT32_EQ(ATT_APP_GNSS_Init(InputMode), CFE_SUCCESS);
 }
@@ -236,6 +262,25 @@ void Test_ATT_APP_GNSS_Init(void)
     UtAssert_STUB_COUNT(OS_OpenCreate, 1);
     UtAssert_STUB_COUNT(OS_FileSysAddFixedMap, 0);
     UtAssert_STUB_COUNT(ATT_APP_NMEA_AssemblerInit, 1);
+
+    /* Health checks start from the platform defaults with no history */
+    UtAssert_STUB_COUNT(ATT_APP_HEALTH_Init, 1);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.CnoThreshold, ATT_APP_PLATFORM_CNO_THRESHOLD_DEFAULT);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.LowCnoHysteresisDb, ATT_APP_PLATFORM_LOW_CNO_HYSTERESIS_DB);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.LowCnoSetCount, ATT_APP_PLATFORM_LOW_CNO_SET_COUNT);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.LowCnoClearCount, ATT_APP_PLATFORM_LOW_CNO_CLEAR_COUNT);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.NoFixSetCount, ATT_APP_PLATFORM_NO_FIX_SET_COUNT);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.NoFixClearCount, ATT_APP_PLATFORM_NO_FIX_CLEAR_COUNT);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.DropSetCount, ATT_APP_PLATFORM_DROP_SET_COUNT);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.DropClearCount, ATT_APP_PLATFORM_DROP_CLEAR_COUNT);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.DropSatPercent, ATT_APP_PLATFORM_DROP_SAT_PERCENT);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.DropMinSats, ATT_APP_PLATFORM_DROP_MIN_SATS);
+    UtAssert_True(ATT_APP_Data.Gnss.HealthConfig.DropMeanDb == ATT_APP_PLATFORM_DROP_MEAN_DB, "DropMeanDb");
+    UtAssert_True(ATT_APP_Data.Gnss.HealthConfig.DropClearDb == ATT_APP_PLATFORM_DROP_CLEAR_DB, "DropClearDb");
+    UtAssert_True(ATT_APP_Data.Gnss.HealthConfig.DropSatDb == ATT_APP_PLATFORM_DROP_SAT_DB, "DropSatDb");
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.BaselineWindow, ATT_APP_PLATFORM_BASELINE_WINDOW);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.BaselineMinSamples, ATT_APP_PLATFORM_BASELINE_MIN_SAMPLES);
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.SatExpireEpochs, ATT_APP_PLATFORM_SAT_EXPIRE_EPOCHS);
 
     /* Missing file: an error event, but initialization still succeeds so the app keeps running */
     UT_ResetState(0);
@@ -284,8 +329,13 @@ void Test_ATT_APP_GNSS_Restart(void)
     ATT_APP_Data.Gnss.LinesThisPass  = 7;
     ATT_APP_Data.Gnss.EpochCounter   = 3;
 
+    /* A commanded threshold must survive the restart */
+    ATT_APP_Data.Gnss.HealthConfig.CnoThreshold = 37;
+
     /* Open input: closed, cleared and opened again; counters are telemetry and are kept */
     ATT_APP_GNSS_Restart();
+    UtAssert_STUB_COUNT(ATT_APP_HEALTH_Init, 2); /* once at start-up, once for the restart */
+    UtAssert_UINT32_EQ(ATT_APP_Data.Gnss.HealthConfig.CnoThreshold, 37);
     UtAssert_STUB_COUNT(OS_close, 1);
     UtAssert_STUB_COUNT(OS_OpenCreate, 2);
     UtAssert_True(ATT_APP_Data.Gnss.IsOpen, "Input open again");
@@ -365,8 +415,13 @@ void Test_ATT_APP_GNSS_Tick_FileEpoch(void)
     UtAssert_UINT32_EQ(Nav->Sats[3].Prn, 9);
     UtAssert_UINT32_EQ(Nav->Sats[4].Prn, 0);
 
-    /* Mean is over the three tracked satellites only: (40 + 44 + 39) / 3 */
+    /* Mean C/N0 and flags are whatever the health checks reported for this epoch */
+    UtAssert_UINT32_EQ(UT_GNSS_Health.CallCount, 1);
+    UtAssert_ADDRESS_EQ(UT_GNSS_Health.State, &ATT_APP_Data.Gnss.HealthState);
+    UtAssert_ADDRESS_EQ(UT_GNSS_Health.Config, &ATT_APP_Data.Gnss.HealthConfig);
     UtAssert_True(Nav->MeanCno == 41.0f, "MeanCno %.2f", (double)Nav->MeanCno);
+    UtAssert_UINT32_EQ(Nav->HealthFlags, 0);
+    UtAssert_STUB_COUNT(CFE_EVS_SendEvent, 1); /* only the "opened" event: no health change, no event */
 
     /* Second tick: the sentence left in the buffer is used before anything is read */
     UT_GNSS_AddChunk("$GGA3\r\n");
@@ -379,26 +434,105 @@ void Test_ATT_APP_GNSS_Tick_FileEpoch(void)
     UtAssert_UINT32_EQ(Nav->EpochCounter, 2);
 }
 
-void Test_ATT_APP_GNSS_Tick_NoTrackedSats(void)
+/* Publish one epoch with the given health result and return how many events it caused */
+static uint32 UT_GNSS_PublishWith(uint8 Flags, uint8 Raised, uint8 Cleared)
 {
-    /*
-     * Test Case For:
-     * void ATT_APP_GNSS_Tick(void)
-     *
-     * An epoch in which nothing is tracked must not divide by zero.
-     */
-    UT_GNSS_Start(ATT_APP_GNSS_INPUT_MODE_FILE);
+    static const char Line[] = "$GGA\n";
+    uint32            Before = UT_GetStubCount(UT_KEY(CFE_EVS_SendEvent));
 
-    UT_GNSS_Feed.Epoch.Sats[0].Cno = ATT_APP_NMEA_CNO_NOT_TRACKED;
-    UT_GNSS_Feed.Epoch.Sats[2].Cno = ATT_APP_NMEA_CNO_NOT_TRACKED;
-    UT_GNSS_Feed.Epoch.Sats[3].Cno = ATT_APP_NMEA_CNO_NOT_TRACKED;
-    UT_GNSS_Feed.Ready[0]          = true;
-    UT_GNSS_AddChunk("$GGA\n");
+    UT_GNSS_Health.Result.Flags   = Flags;
+    UT_GNSS_Health.Result.Raised  = Raised;
+    UT_GNSS_Health.Result.Cleared = Cleared;
+
+    /* Every sentence completes an epoch in this test */
+    UT_GNSS_Feed.CallCount = 0;
+    UT_GNSS_Feed.Ready[0]  = true;
+    UT_GNSS_Read.NumChunks = 0;
+    UT_GNSS_Read.NextChunk = 0;
+    UT_GNSS_AddChunk(Line);
 
     ATT_APP_GNSS_Tick();
 
-    UtAssert_STUB_COUNT(CFE_SB_TransmitMsg, 1);
-    UtAssert_True(ATT_APP_Data.NavTlm.Payload.MeanCno == 0.0f, "MeanCno is 0 with nothing tracked");
+    UtAssert_UINT32_EQ(ATT_APP_Data.NavTlm.Payload.HealthFlags, Flags);
+
+    return UT_GetStubCount(UT_KEY(CFE_EVS_SendEvent)) - Before;
+}
+
+void Test_ATT_APP_GNSS_HealthEvents(void)
+{
+    /*
+     * Test Case For:
+     * void ATT_APP_GNSS_Tick(void) - health flags and their events
+     *
+     * The flags go into every NAV packet, but an event is sent only in the
+     * epoch a flag turns on or off: a condition that lasts 30 seconds
+     * produces two events, not thirty.
+     */
+    const uint8     NoFix = ATT_APP_HEALTH_FLAG_NO_FIX;
+    const uint8     Low   = ATT_APP_HEALTH_FLAG_LOW_CNO_SAT;
+    const uint8     Drop  = ATT_APP_HEALTH_FLAG_BROADBAND_DROP;
+    UT_CheckEvent_t EventTest;
+    uint32          i;
+
+    UT_GNSS_Start(ATT_APP_GNSS_INPUT_MODE_FILE);
+
+    UT_GNSS_Health.Result.MeanCno       = 31.26f;
+    UT_GNSS_Health.Result.MeanBaseline  = 43.0f;
+    UT_GNSS_Health.Result.WeakestPrn    = 21;
+    UT_GNSS_Health.Result.WeakestCno    = 27;
+    UT_GNSS_Health.Result.TrackedSats   = 10;
+    UT_GNSS_Health.Result.BaselinedSats = 10;
+    UT_GNSS_Health.Result.DroppedSats   = 9;
+
+    /* Interference starts: one ERROR event, flag in telemetry */
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_INTERFERENCE_ERR_EID, NULL);
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(Drop, Drop, 0), 1);
+    UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
+
+    /* It continues for many epochs: flag stays in telemetry, no further events */
+    for (i = 0; i < 30; ++i)
+    {
+        UtAssert_UINT32_EQ(UT_GNSS_PublishWith(Drop, 0, 0), 0);
+    }
+    UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
+
+    /* It ends: one INFORMATION event */
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_INTERFERENCE_CLEAR_INF_EID, NULL);
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(0, 0, Drop), 1);
+    UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(0, 0, 0), 0);
+
+    /* Fix lost and regained */
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_FIX_LOST_ERR_EID, NULL);
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(NoFix, NoFix, 0), 1);
+    UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(NoFix, 0, 0), 0);
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_FIX_REGAINED_INF_EID, NULL);
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(0, 0, NoFix), 1);
+    UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
+
+    /* Weak satellite appears and recovers */
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_LOW_CNO_INF_EID, NULL);
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(Low, Low, 0), 1);
+    UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
+    UT_CHECKEVENT_SETUP(&EventTest, ATT_APP_LOW_CNO_CLEAR_INF_EID, NULL);
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(0, 0, Low), 1);
+    UtAssert_UINT32_EQ(EventTest.MatchCount, 1);
+
+    /* Two flags changing in the same epoch each get their own event */
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(Drop | Low, Drop | Low, 0), 2);
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(NoFix, NoFix, Drop | Low), 3);
+
+    /* An epoch claiming more satellites than the packet holds is clamped to the array size */
+    UT_GNSS_Feed.Epoch.NumSats = 255;
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(NoFix, 0, 0), 0);
+    UtAssert_UINT32_EQ(ATT_APP_Data.NavTlm.Payload.Sats[3].Prn, 9);
+    UtAssert_UINT32_EQ(ATT_APP_Data.NavTlm.Payload.Sats[ATT_APP_MISSION_MAX_SATS - 1].Prn, 0);
+
+    /* A mean above its baseline must not print a huge "negative" deficit */
+    UT_GNSS_Health.Result.MeanCno      = 45.0f;
+    UT_GNSS_Health.Result.MeanBaseline = 43.0f;
+    UtAssert_UINT32_EQ(UT_GNSS_PublishWith(0, 0, NoFix), 1);
 }
 
 void Test_ATT_APP_GNSS_Tick_ParseErrors(void)
@@ -648,7 +782,7 @@ void UtTest_Setup(void)
     ADD_TEST(ATT_APP_GNSS_Init);
     ADD_TEST(ATT_APP_GNSS_Restart);
     ADD_TEST(ATT_APP_GNSS_Tick_FileEpoch);
-    ADD_TEST(ATT_APP_GNSS_Tick_NoTrackedSats);
+    ADD_TEST(ATT_APP_GNSS_HealthEvents);
     ADD_TEST(ATT_APP_GNSS_Tick_ParseErrors);
     ADD_TEST(ATT_APP_GNSS_Tick_FileWrap);
     ADD_TEST(ATT_APP_GNSS_Tick_FileFaults);

@@ -30,6 +30,7 @@ add_cfe_coverage_stubs(att_app
   stubs/att_app_utils_stubs.c
   stubs/att_app_nmea_stubs.c
   stubs/att_app_gnss_stubs.c
+  stubs/att_app_health_stubs.c
 )
 
 add_library(att_app_ut_common STATIC

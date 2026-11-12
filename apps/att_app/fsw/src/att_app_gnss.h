@@ -25,6 +25,7 @@
 #include "cfe.h"
 #include "att_app_platform_cfg.h"
 #include "att_app_nmea.h"
+#include "att_app_health.h"
 
 /**
  * \brief Working data of the GNSS input
@@ -47,6 +48,9 @@ typedef struct
 
     ATT_APP_NMEA_Assembler_t Assembler; /**< \brief Epoch being collected */
 
+    ATT_APP_HEALTH_Config_t HealthConfig; /**< \brief Health check tuning; CnoThreshold is commandable */
+    ATT_APP_HEALTH_State_t  HealthState;  /**< \brief Health check history */
+
     uint32 EpochCounter;      /**< \brief Epochs published */
     uint32 ParseErrorCounter; /**< \brief Sentences rejected */
 } ATT_APP_GNSS_Data_t;
@@ -68,7 +72,10 @@ CFE_Status_t ATT_APP_GNSS_Init(uint8 InputMode);
 /**
  * \brief Close the input if it is open, forget partial data and open it again
  *
- * In file mode this restarts the replay from the first sentence.
+ * In file mode this restarts the replay from the first sentence. The health
+ * history (flags and running averages) is cleared as well, because what
+ * comes next is not a continuation of what was being read; the commanded
+ * C/N0 threshold is kept.
  */
 void ATT_APP_GNSS_Restart(void);
 

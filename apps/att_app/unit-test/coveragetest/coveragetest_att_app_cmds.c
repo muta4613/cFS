@@ -71,6 +71,8 @@ void Test_ATT_APP_ReportHousekeeping(void)
     ATT_APP_Data.Gnss.ParseErrorCounter = 2;
     ATT_APP_Data.Gnss.IsOpen            = true;
 
+    ATT_APP_Data.Gnss.HealthConfig.CnoThreshold = 33;
+
     /* Call unit under test, NULL pointer confirms command access is through APIs */
     ATT_APP_SendHkCmd(NULL);
 
@@ -80,6 +82,7 @@ void Test_ATT_APP_ReportHousekeeping(void)
     UtAssert_UINT32_EQ(ATT_APP_Data.HkTlm.Payload.EpochCounter, 10);
     UtAssert_UINT32_EQ(ATT_APP_Data.HkTlm.Payload.ParseErrorCounter, 2);
     UtAssert_UINT32_EQ(ATT_APP_Data.HkTlm.Payload.InputState, ATT_APP_INPUT_STATE_OPEN);
+    UtAssert_UINT32_EQ(ATT_APP_Data.HkTlm.Payload.CnoThreshold, 33);
 
     /* A closed input is reported as such */
     ATT_APP_Data.Gnss.IsOpen = false;

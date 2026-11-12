@@ -48,4 +48,12 @@
 #define ATT_APP_GNSS_PARSE_ERR_EID  18 /**< \brief Sentence rejected by the parser (filtered: first few only) */
 #define ATT_APP_GNSS_DEVMAP_ERR_EID 19 /**< \brief Device directory could not be mapped into OSAL */
 
+/* Signal health: each is sent once when the condition starts or ends, never every second */
+#define ATT_APP_FIX_LOST_ERR_EID           20 /**< \brief NO_FIX set */
+#define ATT_APP_FIX_REGAINED_INF_EID       21 /**< \brief NO_FIX cleared */
+#define ATT_APP_LOW_CNO_INF_EID            22 /**< \brief LOW_CNO_SAT set */
+#define ATT_APP_LOW_CNO_CLEAR_INF_EID      23 /**< \brief LOW_CNO_SAT cleared */
+#define ATT_APP_INTERFERENCE_ERR_EID       24 /**< \brief BROADBAND_DROP set: possible interference */
+#define ATT_APP_INTERFERENCE_CLEAR_INF_EID 25 /**< \brief BROADBAND_DROP cleared */
+
 #endif /* ATT_APP_EVENTS_H */
